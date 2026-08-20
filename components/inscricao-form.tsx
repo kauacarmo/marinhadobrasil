@@ -46,8 +46,8 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
         <p className="mt-1 text-muted-foreground">
           No momento não há concursos com inscrições abertas. Acompanhe os editais na página de concursos.
         </p>
-        <Button asChild className="mt-4">
-          <Link href="/concursos">Ver concursos</Link>
+        <Button render={<Link href="/concursos" />} className="mt-4">
+          Ver concursos
         </Button>
       </div>
     )
@@ -97,8 +97,8 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
         </p>
 
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <Button asChild variant="outline">
-            <Link href="/prova">Ir para a prova</Link>
+          <Button render={<Link href="/prova" />} variant="outline">
+            Ir para a prova
           </Button>
           <Button
             onClick={() => {
@@ -159,7 +159,7 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
       <form action={submit} className="mt-6 space-y-5">
         <div className="space-y-2">
           <Label>Concurso</Label>
-          <Select value={contestId} onValueChange={setContestId}>
+          <Select value={contestId} onValueChange={(v) => setContestId(v ?? "")}>
             <SelectTrigger>
               <SelectValue placeholder="Selecione o concurso">
                 {concursos.find((c) => c.id === contestId)?.titulo}
