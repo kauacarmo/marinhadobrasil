@@ -6,6 +6,7 @@ import type { Concurso, StatusConcurso } from "@/lib/data"
 function mapStatus(s: Contest["status"]): StatusConcurso {
   if (s === "inscricoes_abertas") return "Inscrições Abertas"
   if (s === "em_andamento") return "Provas Abertas"
+  if (s === "previsto") return "Previsto"
   return "Encerrado"
 }
 
