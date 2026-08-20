@@ -4,14 +4,25 @@ import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { PageHero } from "@/components/page-hero"
 import { Badge } from "@/components/ui/badge"
-import { noticias, formatarData } from "@/lib/data"
+import { noticias as noticiasEstaticas, formatarData } from "@/lib/data"
+import { listNoticias } from "@/app/admin/noticias/actions"
 
 export const metadata = {
   title: "Notícias | Capitania dos Portos de São Paulo",
   description: "Comunicados, editais e novidades dos concursos da Marinha do Brasil.",
 }
 
-export default function NoticiasPage() {
+export const dynamic = "force-dynamic"
+
+export default async function NoticiasPage() {
+  const publicadas = await listNoticias()
+  // Somente as notícias destinadas ao portal do site
+  const doPortal = publicadas
+    .filter((n) => n.destino === "portal" || n.destino === "ambos")
+    .map((n) => ({ id: n.id, titulo: n.titulo, resumo: n.resumo, data: n.data.split("T")[0], categoria: n.categoria }))
+
+  // Usa as publicações do portal; se não houver nenhuma, exibe o conteúdo de exemplo
+  const noticias = doPortal.length > 0 ? doPortal : noticiasEstaticas
   const [destaque, ...demais] = noticias
 
   return (

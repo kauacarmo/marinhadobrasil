@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
-import { Search, Pencil, Trash2, Eraser, Users } from "lucide-react"
+import { Search, Pencil, Trash2, Eraser, Users, Award, Clock3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -40,6 +40,7 @@ export function CandidatosManager({ candidatos }: { candidatos: CandidatoComConc
   const [erro, setErro] = useState<string | null>(null)
 
   const [editando, setEditando] = useState<CandidatoComConcurso | null>(null)
+  const [verNota, setVerNota] = useState<CandidatoComConcurso | null>(null)
   const [confirmarApagar, setConfirmarApagar] = useState<CandidatoComConcurso | null>(null)
   const [openLimpar, setOpenLimpar] = useState(false)
 
@@ -156,6 +157,15 @@ export function CandidatosManager({ candidatos }: { candidatos: CandidatoComConc
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setVerNota(c)}
+                      aria-label="Ver nota"
+                      className="text-primary hover:text-primary"
+                    >
+                      <Award className="size-4" />
+                    </Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditando(c)} aria-label="Editar">
                       <Pencil className="size-4" />
                     </Button>
@@ -239,6 +249,47 @@ export function CandidatosManager({ candidatos }: { candidatos: CandidatoComConc
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ver nota do candidato */}
+      <Dialog open={!!verNota} onOpenChange={(o) => !o && setVerNota(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-serif">Nota da prova</DialogTitle>
+            <DialogDescription>
+              {verNota?.nome_personagem || verNota?.nome} — {verNota?.concurso_titulo}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {verNota && verNota.prova_finalizada_em && verNota.total_questoes ? (
+              <div className="rounded-lg border border-border bg-muted/40 p-6 text-center">
+                <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-accent/15">
+                  <Award className="size-6 text-accent" />
+                </div>
+                <p className="mt-4 font-serif text-4xl font-bold text-primary">
+                  {verNota.acertos}
+                  <span className="text-xl text-muted-foreground">/{verNota.total_questoes}</span>
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {Math.round(((verNota.acertos ?? 0) / verNota.total_questoes) * 100)}% de aproveitamento
+                </p>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Prova finalizada em {formatData(verNota.prova_finalizada_em)}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
+                <Clock3 className="size-6" />
+                <p className="text-sm">Este candidato ainda não realizou a prova.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVerNota(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

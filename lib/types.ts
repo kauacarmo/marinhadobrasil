@@ -40,6 +40,9 @@ export type Registration = {
   idade: number
   data_nascimento: string
   codigo_prova: string
+  acertos: number | null
+  total_questoes: number | null
+  prova_finalizada_em: string | null
   created_at: string
 }
 
@@ -120,9 +123,24 @@ export type AbaWebhook =
   | "concursos"
   | "publicacoes"
   | "noticias"
+  | "diario_naval"
   | "candidatos"
   | "assinantes"
   | "ouvidoria"
+
+export type DestinoNoticia = "portal" | "diario_naval" | "ambos"
+
+export type Noticia = {
+  id: string
+  titulo: string
+  resumo: string
+  categoria: string
+  data: string
+  destino: DestinoNoticia
+  created_at: string
+}
+
+export const CATEGORIAS_NOTICIA = ["Editais", "Provas", "Resultados", "Comunicados", "Institucional"] as const
 
 export type Webhook = {
   id: string
@@ -136,7 +154,8 @@ export type Webhook = {
 export const WEBHOOK_ABAS: { valor: AbaWebhook; label: string; descricao: string }[] = [
   { valor: "concursos", label: "Concursos", descricao: "Disparado ao criar, atualizar ou remover um concurso." },
   { valor: "publicacoes", label: "Resultados e Editais", descricao: "Disparado ao publicar um resultado, edital ou cronograma." },
-  { valor: "noticias", label: "Notícias", descricao: "Disparado ao publicar uma notícia." },
+  { valor: "noticias", label: "Notícias", descricao: "Disparado ao publicar uma notícia no portal do site." },
+  { valor: "diario_naval", label: "Notícias — Diário Naval", descricao: "Disparado ao publicar uma notícia no canal Diário Naval." },
   { valor: "candidatos", label: "Candidatos", descricao: "Disparado a cada nova inscrição de candidato." },
   { valor: "assinantes", label: "Assinantes", descricao: "Disparado quando um cidadão se cadastra para receber notícias." },
   { valor: "ouvidoria", label: "Ouvidoria", descricao: "Disparado a cada nova manifestação registrada na Ouvidoria." },

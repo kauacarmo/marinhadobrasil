@@ -12,6 +12,7 @@ type ProvaAtiva = {
   candidato: string
   concurso: string
   examId: string
+  codigo: string
   duracaoMinutos: number
   questoes: QuestaoPublica[]
 }
@@ -52,6 +53,7 @@ export function ProvaAcesso() {
           candidato: res.candidato,
           concurso: res.concurso,
           examId: res.examId,
+          codigo: res.codigo,
           duracaoMinutos: res.duracaoMinutos,
           questoes: res.questoes,
         })
@@ -77,7 +79,7 @@ export function ProvaAcesso() {
       return
     }
     startTransition(async () => {
-      const res = await enviarRespostas(prova.examId, respostas)
+      const res = await enviarRespostas(prova.examId, respostas, prova.codigo)
       if (res?.error) setErro(res.error)
       else setResultado({ acertos: res.acertos!, total: res.total!, gabarito: res.gabarito! })
     })

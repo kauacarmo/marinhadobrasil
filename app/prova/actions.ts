@@ -15,6 +15,7 @@ export type AcessoProvaOk = {
   concurso: string
   examId: string
   contestId: string
+  codigo: string
   duracaoMinutos: number
   questoes: QuestaoPublica[]
 }
@@ -68,13 +69,14 @@ export async function acessarProva(codigoRaw: string): Promise<AcessoProvaOk | A
     concurso: contest.titulo,
     examId: exam.id,
     contestId: contest.id,
+    codigo,
     duracaoMinutos: exam.duracao_minutos ?? 60,
     // Remove o gabarito antes de enviar ao cliente
     questoes: exam.questoes.map((q) => ({ enunciado: q.enunciado, alternativas: q.alternativas })),
   }
 }
 
-export async function enviarRespostas(examId: string, respostas: number[]) {
+export async function enviarRespostas(examId: string, respostas: number[], codigo?: string) {
   const supabase = createAdminClient()
   const { data: examData } = await supabase.from("exams").select("*").eq("id", examId).single()
   const exam = examData as Exam | null
@@ -89,10 +91,24 @@ export async function enviarRespostas(examId: string, respostas: number[]) {
     return { correta, marcada, certo }
   })
 
+  const total = exam.questoes.length
+
+  // Persiste a nota na inscrição do candidato para consulta no painel
+  if (codigo) {
+    await supabase
+      .from("registrations")
+      .update({
+        acertos,
+        total_questoes: total,
+        prova_finalizada_em: new Date().toISOString(),
+      })
+      .eq("codigo_prova", codigo.trim().toUpperCase())
+  }
+
   return {
     success: true,
     acertos,
-    total: exam.questoes.length,
+    total,
     gabarito,
   }
 }

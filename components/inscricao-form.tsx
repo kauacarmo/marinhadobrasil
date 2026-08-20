@@ -171,11 +171,6 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" name="nome" placeholder="Nome completo" />
-        </div>
-
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="idade">Idade</Label>

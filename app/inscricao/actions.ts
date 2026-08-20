@@ -16,7 +16,6 @@ export async function realizarInscricao(formData: FormData) {
   const numeroInscricao = String(formData.get("numero_inscricao") || "").trim()
   const idJogo = String(formData.get("id_jogo") || "").trim()
   const nomePersonagem = String(formData.get("nome_personagem") || "").trim()
-  const nome = String(formData.get("nome") || "").trim()
   const idadeRaw = String(formData.get("idade") || "").trim()
   const dataNascimento = String(formData.get("data_nascimento") || "").trim()
 
@@ -24,7 +23,9 @@ export async function realizarInscricao(formData: FormData) {
   if (!numeroInscricao) return { error: "Informe o número de inscrição." }
   if (!idJogo) return { error: "Informe o ID do jogo." }
   if (!nomePersonagem) return { error: "Informe o nome do personagem." }
-  if (!nome) return { error: "Informe o nome." }
+
+  // O nome do candidato passa a ser o nome do personagem
+  const nome = nomePersonagem
 
   const idade = Number.parseInt(idadeRaw, 10)
   if (!Number.isInteger(idade) || idade <= 0 || idade >= 130) {
