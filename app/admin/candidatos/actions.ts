@@ -2,9 +2,77 @@
 
 import { createAdminClient } from "@/lib/supabase/admin"
 import { revalidatePath } from "next/cache"
-import type { Registration } from "@/lib/types"
+import type { Exam, Registration } from "@/lib/types"
 
 export type CandidatoComConcurso = Registration & { concurso_titulo: string }
+
+export type QuestaoCorrigida = {
+  enunciado: string
+  alternativas: string[]
+  correta: number
+  marcada: number | null
+  certo: boolean
+}
+
+export type ProvaCandidato = {
+  candidato: string
+  concurso: string
+  acertos: number
+  total: number
+  finalizadaEm: string | null
+  questoes: QuestaoCorrigida[]
+}
+
+// Carrega a prova respondida por um candidato, com gabarito e alternativa marcada
+export async function getProvaCandidato(
+  registrationId: string,
+): Promise<{ prova?: ProvaCandidato; error?: string }> {
+  const supabase = createAdminClient()
+
+  const { data: reg } = await supabase
+    .from("registrations")
+    .select("*, contests(titulo)")
+    .eq("id", registrationId)
+    .single()
+  if (!reg) return { error: "Candidato não encontrado." }
+  const registro = reg as any
+
+  if (!registro.prova_finalizada_em) {
+    return { error: "Este candidato ainda não realizou a prova." }
+  }
+
+  const { data: examData } = await supabase
+    .from("exams")
+    .select("*")
+    .eq("contest_id", registro.contest_id)
+    .single()
+  const exam = examData as Exam | null
+  if (!exam) return { error: "A prova deste concurso não está mais disponível." }
+
+  const respostas: number[] = Array.isArray(registro.respostas) ? registro.respostas : []
+
+  const questoes: QuestaoCorrigida[] = exam.questoes.map((q, i) => {
+    const marcada = respostas[i] ?? null
+    return {
+      enunciado: q.enunciado,
+      alternativas: q.alternativas,
+      correta: q.correta,
+      marcada,
+      certo: marcada === q.correta,
+    }
+  })
+
+  return {
+    prova: {
+      candidato: registro.nome_personagem || registro.nome,
+      concurso: registro.contests?.titulo ?? "—",
+      acertos: registro.acertos ?? questoes.filter((q) => q.certo).length,
+      total: registro.total_questoes ?? questoes.length,
+      finalizadaEm: registro.prova_finalizada_em,
+      questoes,
+    },
+  }
+}
 
 export async function listCandidatos(): Promise<CandidatoComConcurso[]> {
   const supabase = createAdminClient()

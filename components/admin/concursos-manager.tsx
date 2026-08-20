@@ -31,7 +31,6 @@ import {
   CheckCircle2,
   Pencil,
   ImageIcon,
-  Mail,
   CalendarClock,
 } from "lucide-react"
 import {
@@ -43,7 +42,6 @@ import {
   gerarProva,
   getExam,
   alternarLiberacao,
-  notificarAssinantes,
 } from "@/app/admin/concursos/actions"
 
 type ContestRow = Contest & { inscritos: number; temProva: boolean }
@@ -66,7 +64,6 @@ export function ConcursosManager({ contests }: { contests: ContestRow[] }) {
 
   const [editando, setEditando] = useState<ContestRow | null>(null)
   const [previewImg, setPreviewImg] = useState<string | null>(null)
-  const [notificando, setNotificando] = useState<string | null>(null)
 
   function flash(texto: string) {
     setMsg(texto)
@@ -123,17 +120,6 @@ export function ConcursosManager({ contests }: { contests: ContestRow[] }) {
     startTransition(async () => {
       await apagarContest(id)
       flash("Concurso removido.")
-    })
-  }
-
-  function notificar(id: string) {
-    setNotificando(id)
-    setErro(null)
-    startTransition(async () => {
-      const res = await notificarAssinantes(id)
-      setNotificando(null)
-      if (res?.error) setErro(res.error)
-      else flash(res?.message || "Assinantes notificados por e-mail.")
     })
   }
 
@@ -284,19 +270,6 @@ export function ConcursosManager({ contests }: { contests: ContestRow[] }) {
             <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
               <Button size="sm" variant="outline" onClick={() => abrirEditar(c)}>
                 <Pencil className="size-4" /> Editar
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => notificar(c.id)}
-                disabled={isPending && notificando === c.id}
-              >
-                {notificando === c.id ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Mail className="size-4" />
-                )}
-                Notificar assinantes
               </Button>
               <Button
                 size="sm"

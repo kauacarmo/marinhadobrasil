@@ -44,6 +44,7 @@ export type Registration = {
   codigo_prova: string
   acertos: number | null
   total_questoes: number | null
+  respostas: number[] | null
   prova_finalizada_em: string | null
   created_at: string
 }

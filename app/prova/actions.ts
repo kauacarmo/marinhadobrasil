@@ -100,6 +100,7 @@ export async function enviarRespostas(examId: string, respostas: number[], codig
       .update({
         acertos,
         total_questoes: total,
+        respostas,
         prova_finalizada_em: new Date().toISOString(),
       })
       .eq("codigo_prova", codigo.trim().toUpperCase())
