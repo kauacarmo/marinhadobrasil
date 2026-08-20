@@ -1,4 +1,4 @@
-export type ContestStatus = "fechado" | "inscricoes_abertas" | "em_andamento"
+export type ContestStatus = "fechado" | "inscricoes_abertas" | "em_andamento" | "previsto"
 
 export type Contest = {
   id: string
@@ -69,6 +69,7 @@ export const STATUS_LABEL: Record<ContestStatus, string> = {
   fechado: "Fechado",
   inscricoes_abertas: "Inscrições Abertas",
   em_andamento: "Em Andamento",
+  previsto: "Previsto",
 }
 
 export type TipoDocumento = "portaria" | "boletim" | "disciplinar"
