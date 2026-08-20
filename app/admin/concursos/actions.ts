@@ -193,6 +193,22 @@ export async function atualizarStatus(id: string, status: ContestStatus) {
   return { success: true }
 }
 
+export async function atualizarStatusPrevisto(
+  id: string,
+  statusPrevisto: ContestStatus | null,
+  data: string | null,
+) {
+  const supabase = createAdminClient()
+  const { error } = await supabase
+    .from("contests")
+    .update({ status_previsto: statusPrevisto, status_previsto_data: data || null })
+    .eq("id", id)
+  if (error) return { error: error.message }
+  revalidatePath("/admin/concursos")
+  revalidatePath("/concursos")
+  return { success: true }
+}
+
 export async function apagarContest(id: string) {
   const supabase = createAdminClient()
   const { error } = await supabase.from("contests").delete().eq("id", id)

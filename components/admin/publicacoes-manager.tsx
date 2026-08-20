@@ -20,6 +20,7 @@ import {
   apagarPublicacao,
 } from "@/app/admin/publicacoes/actions"
 import { PUBLICACAO_LABEL_SINGULAR, type Publicacao, type TipoPublicacao } from "@/lib/types"
+import { ResultadosDesempenho } from "@/components/admin/resultados-desempenho"
 
 const TABS: { tipo: TipoPublicacao; label: string; icon: typeof FileText }[] = [
   { tipo: "resultado", label: "Resultados", icon: Trophy },
@@ -37,9 +38,11 @@ function formatData(iso: string | null) {
 export function PublicacoesManager({
   dados,
   concursos,
+  concursosDesempenho = [],
 }: {
   dados: Record<TipoPublicacao, Publicacao[]>
   concursos: { id: string; titulo: string }[]
+  concursosDesempenho?: { id: string; titulo: string; cargo: string; realizaram: number }[]
 }) {
   const [aba, setAba] = useState<TipoPublicacao>("resultado")
   const [open, setOpen] = useState(false)
@@ -125,6 +128,9 @@ export function PublicacoesManager({
           <Plus className="size-4" /> Novo {PUBLICACAO_LABEL_SINGULAR[aba].toLowerCase()}
         </Button>
       </div>
+
+      {/* Desempenho dos candidatos (somente na aba Resultados) */}
+      {aba === "resultado" ? <ResultadosDesempenho concursos={concursosDesempenho} /> : null}
 
       {/* Lista */}
       {lista.length === 0 ? (

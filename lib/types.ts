@@ -9,6 +9,8 @@ export type Contest = {
   descricao: string | null
   tema_prova: string
   status: ContestStatus
+  status_previsto: ContestStatus | null
+  status_previsto_data: string | null
   image_url: string | null
   local: string | null
   escolaridade: string | null

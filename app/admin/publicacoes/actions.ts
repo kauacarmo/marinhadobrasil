@@ -36,6 +36,110 @@ export async function listConcursosSelect(): Promise<{ id: string; titulo: strin
   return data
 }
 
+export type CandidatoDesempenho = {
+  id: string
+  numero_inscricao: string
+  nome: string
+  acertos: number
+  total: number
+  percentual: number
+  finalizadaEm: string | null
+  posicao: number
+  aprovado: boolean
+}
+
+export type DesempenhoConcurso = {
+  contest: { id: string; titulo: string; cargo: string; vagas: number }
+  candidatos: CandidatoDesempenho[]
+  totalRealizaram: number
+  aprovados: number
+}
+
+export async function listConcursosComDesempenho(): Promise<
+  { id: string; titulo: string; cargo: string; realizaram: number }[]
+> {
+  const supabase = createAdminClient()
+  const { data: contests } = await supabase
+    .from("contests")
+    .select("id, titulo, cargo")
+    .order("created_at", { ascending: false })
+  if (!contests) return []
+
+  const { data: regs } = await supabase
+    .from("registrations")
+    .select("contest_id")
+    .not("prova_finalizada_em", "is", null)
+
+  const contagem: Record<string, number> = {}
+  for (const r of regs ?? []) contagem[r.contest_id] = (contagem[r.contest_id] ?? 0) + 1
+
+  return (contests as any[]).map((c) => ({
+    id: c.id,
+    titulo: c.titulo,
+    cargo: c.cargo,
+    realizaram: contagem[c.id] ?? 0,
+  }))
+}
+
+// Nota mínima de aprovação (aproveitamento) — usada como critério de sugestão
+const APROVEITAMENTO_MINIMO = 50
+
+export async function getDesempenhoConcurso(contestId: string): Promise<DesempenhoConcurso | null> {
+  const supabase = createAdminClient()
+
+  const { data: contest } = await supabase
+    .from("contests")
+    .select("id, titulo, cargo, vagas")
+    .eq("id", contestId)
+    .single()
+  if (!contest) return null
+
+  const { data: regs } = await supabase
+    .from("registrations")
+    .select("id, numero_inscricao, nome, nome_personagem, acertos, total_questoes, prova_finalizada_em")
+    .eq("contest_id", contestId)
+    .not("prova_finalizada_em", "is", null)
+
+  const vagas = (contest as any).vagas ?? 0
+
+  // Ordena pela maior nota (aproveitamento), depois pela conclusão mais cedo
+  const ordenados = (regs ?? [])
+    .map((r: any) => {
+      const total = r.total_questoes ?? 0
+      const acertos = r.acertos ?? 0
+      const percentual = total > 0 ? Math.round((acertos / total) * 100) : 0
+      return {
+        id: r.id,
+        numero_inscricao: r.numero_inscricao,
+        nome: r.nome_personagem || r.nome,
+        acertos,
+        total,
+        percentual,
+        finalizadaEm: r.prova_finalizada_em,
+      }
+    })
+    .sort((a, b) => {
+      if (b.percentual !== a.percentual) return b.percentual - a.percentual
+      return (a.finalizadaEm ?? "").localeCompare(b.finalizadaEm ?? "")
+    })
+
+  // Sugestão de aprovação: dentro do número de vagas e com aproveitamento mínimo
+  let aprovados = 0
+  const candidatos: CandidatoDesempenho[] = ordenados.map((c, i) => {
+    const dentroVagas = vagas > 0 ? i < vagas : true
+    const aprovado = dentroVagas && c.percentual >= APROVEITAMENTO_MINIMO
+    if (aprovado) aprovados++
+    return { ...c, posicao: i + 1, aprovado }
+  })
+
+  return {
+    contest: { id: contest.id, titulo: contest.titulo, cargo: contest.cargo, vagas },
+    candidatos,
+    totalRealizaram: candidatos.length,
+    aprovados,
+  }
+}
+
 export async function criarPublicacao(formData: FormData) {
   const tipo = String(formData.get("tipo") || "") as TipoPublicacao
   const titulo = String(formData.get("titulo") || "").trim()

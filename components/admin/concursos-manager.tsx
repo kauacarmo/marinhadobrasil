@@ -32,11 +32,13 @@ import {
   Pencil,
   ImageIcon,
   Mail,
+  CalendarClock,
 } from "lucide-react"
 import {
   criarContest,
   atualizarContest,
   atualizarStatus,
+  atualizarStatusPrevisto,
   apagarContest,
   gerarProva,
   getExam,
@@ -75,6 +77,13 @@ export function ConcursosManager({ contests }: { contests: ContestRow[] }) {
     startTransition(async () => {
       await atualizarStatus(id, status)
       flash("Situação atualizada.")
+    })
+  }
+
+  function mudarStatusPrevisto(id: string, status: ContestStatus | null, data: string | null) {
+    startTransition(async () => {
+      await atualizarStatusPrevisto(id, status, data)
+      flash("Status previsto atualizado.")
     })
   }
 
@@ -188,6 +197,12 @@ export function ConcursosManager({ contests }: { contests: ContestRow[] }) {
                   <Badge variant="outline" className={statusBadge[c.status]}>
                     {STATUS_LABEL[c.status]}
                   </Badge>
+                  {c.status_previsto ? (
+                    <Badge variant="outline" className="border-dashed border-primary/40 text-primary">
+                      <CalendarClock className="mr-1 size-3" />
+                      Previsto: {STATUS_LABEL[c.status_previsto]}
+                    </Badge>
+                  ) : null}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {c.cargo} • {c.vagas} vaga(s)
@@ -203,9 +218,9 @@ export function ConcursosManager({ contests }: { contests: ContestRow[] }) {
                 </div>
               </div>
 
-              <div className="flex flex-col items-end gap-2">
-                <div className="w-52">
-                  <Label className="sr-only">Situação</Label>
+              <div className="flex flex-col items-stretch gap-3 sm:w-56">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Situação atual</Label>
                   <Select value={c.status} onValueChange={(v) => mudarStatus(c.id, v as ContestStatus)}>
                     <SelectTrigger>
                       <SelectValue />
@@ -216,6 +231,52 @@ export function ConcursosManager({ contests }: { contests: ContestRow[] }) {
                       <SelectItem value="em_andamento">Em Andamento</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-1 rounded-md border border-dashed border-border p-2.5">
+                  <Label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <CalendarClock className="size-3.5" /> Status previsto
+                  </Label>
+                  <Select
+                    value={c.status_previsto ?? undefined}
+                    onValueChange={(v) =>
+                      mudarStatusPrevisto(c.id, v === "none" ? null : (v as ContestStatus), c.status_previsto_data)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nenhum">
+                        {c.status_previsto ? STATUS_LABEL[c.status_previsto] : "Nenhum"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      <SelectItem value="fechado">Fechado</SelectItem>
+                      <SelectItem value="inscricoes_abertas">Inscrições Abertas</SelectItem>
+                      <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="date"
+                    aria-label="Data prevista"
+                    defaultValue={c.status_previsto_data ?? ""}
+                    onChange={(e) => mudarStatusPrevisto(c.id, c.status_previsto, e.target.value || null)}
+                    className="h-8 text-xs"
+                  />
+                  {c.status_previsto ? (
+                    <p className="text-xs text-muted-foreground">
+                      Previsto: <span className="font-medium text-foreground">{STATUS_LABEL[c.status_previsto]}</span>
+                      {c.status_previsto_data ? (
+                        <>
+                          {" "}
+                          em{" "}
+                          {(() => {
+                            const [a, m, d] = c.status_previsto_data.split("-")
+                            return `${d}/${m}/${a}`
+                          })()}
+                        </>
+                      ) : null}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
