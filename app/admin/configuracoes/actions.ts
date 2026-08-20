@@ -63,17 +63,27 @@ export async function testarWebhook(id: string) {
   const { data: webhook } = await supabase.from("webhooks").select("*").eq("id", id).single()
   if (!webhook) return { error: "Webhook não encontrado." }
 
+  const url = String(webhook.url ?? "").trim()
+  if (!/^https?:\/\//i.test(url)) {
+    return { error: "A URL do webhook é inválida. Ela deve começar com http:// ou https://." }
+  }
+
   try {
-    const res = await fetch(webhook.url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Webhook-Aba": webhook.aba,
         "X-Webhook-Evento": "teste",
       },
-      body: montarCorpoWebhook(webhook.url, webhook.aba, "teste", null),
+      body: montarCorpoWebhook(url, webhook.aba, "teste", null),
     })
-    if (!res.ok) return { error: `O endpoint respondeu com status ${res.status}.` }
+    if (!res.ok) {
+      const detalhe = (await res.text().catch(() => "")).slice(0, 200)
+      return {
+        error: `O endpoint respondeu com status ${res.status}.${detalhe ? ` Detalhe: ${detalhe}` : ""}`,
+      }
+    }
     return { success: true, message: "Teste enviado com sucesso." }
   } catch (err) {
     return { error: `Não foi possível conectar ao endpoint: ${String(err)}` }

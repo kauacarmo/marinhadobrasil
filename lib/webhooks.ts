@@ -37,21 +37,27 @@ export function montarMensagem(evento: string, dados: unknown): string {
 export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string, dados: unknown): string {
   const mensagem = montarMensagem(evento, dados)
   const enviado_em = new Date().toISOString()
+  const limpa = url.trim()
 
-  const ehDiscord = /discord(app)?\.com\/api\/webhooks/i.test(url)
-  const ehSlack = /hooks\.slack\.com/i.test(url)
+  const ehDiscord = /discord(app)?\.com\/api\/webhooks/i.test(limpa)
+  const ehSlack = /hooks\.slack\.com/i.test(limpa)
 
-  if (ehDiscord) {
+  // Endpoints de compatibilidade do Discord exigem o formato do provedor de origem.
+  // Ex.: .../webhooks/ID/TOKEN/slack espera { text }, não { content }.
+  const ehDiscordSlack = ehDiscord && /\/slack\b/i.test(limpa)
+  const ehDiscordGithub = ehDiscord && /\/github\b/i.test(limpa)
+
+  if (ehSlack || ehDiscordSlack) {
+    return JSON.stringify({ text: mensagem })
+  }
+
+  if (ehDiscord && !ehDiscordGithub) {
     const d = (dados && typeof dados === "object" ? dados : {}) as Record<string, unknown>
     const corpo: Record<string, unknown> = { content: mensagem }
     if (evento !== "teste" && typeof d.imagem_url === "string" && /^https?:\/\//i.test(d.imagem_url)) {
       corpo.embeds = [{ image: { url: d.imagem_url } }]
     }
     return JSON.stringify(corpo)
-  }
-
-  if (ehSlack) {
-    return JSON.stringify({ text: mensagem })
   }
 
   return JSON.stringify({ aba, evento, dados, mensagem, content: mensagem, text: mensagem, enviado_em })
@@ -74,7 +80,7 @@ export async function dispararWebhooks(aba: AbaWebhook, evento: string, dados: u
 
     await Promise.allSettled(
       webhooks.map((w) =>
-        fetch(w.url, {
+        fetch(w.url.trim(), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
