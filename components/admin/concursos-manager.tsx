@@ -225,9 +225,14 @@ export function ConcursosManager({ contests }: { contests: ContestRow[] }) {
                   </Label>
                   <Select
                     value={c.status_previsto ?? undefined}
-                    onValueChange={(v) =>
-                      mudarStatusPrevisto(c.id, v === "none" ? null : (v as ContestStatus), c.status_previsto_data)
-                    }
+                    onValueChange={(v) => {
+                      const valor = v as string | null
+                      mudarStatusPrevisto(
+                        c.id,
+                        !valor || valor === "none" ? null : (valor as ContestStatus),
+                        c.status_previsto_data,
+                      )
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Nenhum">
