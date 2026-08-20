@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import type { Contest } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { realizarInscricao } from "@/app/inscricao/actions"
+import { realizarInscricao, proximoNumeroInscricao } from "@/app/inscricao/actions"
 import { ClipboardCheck, Copy, Check, FileEdit, ArrowRight, Anchor } from "lucide-react"
 
 type Resultado = {
@@ -23,7 +23,20 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
   const [erro, setErro] = useState<string | null>(null)
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const [copiado, setCopiado] = useState(false)
+  const [numeroPrevisto, setNumeroPrevisto] = useState<string>("")
   const [isPending, startTransition] = useTransition()
+
+  // Busca o próximo número de inscrição quando o formulário é aberto
+  useEffect(() => {
+    if (!aberto) return
+    let ativo = true
+    proximoNumeroInscricao().then((n) => {
+      if (ativo) setNumeroPrevisto(n)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [aberto])
 
   if (concursos.length === 0) {
     return (
@@ -162,8 +175,16 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
           </Select>
         </div>
 
-        <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
-          O número de inscrição é gerado automaticamente ao concluir a inscrição.
+        <div className="space-y-2">
+          <Label htmlFor="numero_inscricao">Número de inscrição</Label>
+          <Input
+            id="numero_inscricao"
+            value={numeroPrevisto || "Gerando..."}
+            readOnly
+            aria-readonly="true"
+            className="bg-muted/50 font-mono font-semibold text-muted-foreground"
+          />
+          <p className="text-xs text-muted-foreground">Gerado automaticamente. Confirmado ao concluir a inscrição.</p>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">

@@ -23,6 +23,12 @@ async function gerarNumeroInscricao(supabase: ReturnType<typeof createAdminClien
   return `${ano}-${String(proximo).padStart(5, "0")}`
 }
 
+// Retorna o próximo número de inscrição previsto, para exibição no formulário
+export async function proximoNumeroInscricao() {
+  const supabase = createAdminClient()
+  return gerarNumeroInscricao(supabase)
+}
+
 export async function realizarInscricao(formData: FormData) {
   const contestId = String(formData.get("contest_id") || "")
   const idJogo = String(formData.get("id_jogo") || "").trim()
@@ -55,6 +61,20 @@ export async function realizarInscricao(formData: FormData) {
   if (!contest) return { error: "Concurso não encontrado." }
   if (contest.status !== "inscricoes_abertas") {
     return { error: "As inscrições para este concurso não estão abertas." }
+  }
+
+  // Impede inscrição repetida: o mesmo ID do jogo só pode se inscrever uma vez por concurso
+  const { data: jaInscrito } = await supabase
+    .from("registrations")
+    .select("id")
+    .eq("contest_id", contestId)
+    .eq("id_jogo", idJogo)
+    .maybeSingle()
+
+  if (jaInscrito) {
+    return {
+      error: "Este ID do jogo já possui inscrição neste concurso. Cada jogador pode se inscrever apenas uma vez.",
+    }
   }
 
   const codigoProva = gerarCodigoProva()

@@ -137,6 +137,9 @@ export type Noticia = {
   categoria: string
   data: string
   destino: DestinoNoticia
+  imagem_url: string | null
+  rodape: string | null
+  mencao: string | null
   created_at: string
 }
 

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { Plus, Pencil, Trash2, Globe, Radio, Send } from "lucide-react"
+import { useRef, useState, useTransition } from "react"
+import { Plus, Pencil, Trash2, Globe, Radio, Send, ImageIcon, Loader2, X, AtSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -53,6 +53,9 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
 
   const [categoria, setCategoria] = useState<string>("Comunicados")
   const [destino, setDestino] = useState<DestinoNoticia>("portal")
+  const [imagemUrl, setImagemUrl] = useState<string>("")
+  const [enviandoImg, setEnviandoImg] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function flash(t: string) {
     setMsg(t)
@@ -63,6 +66,7 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
     setEditando(null)
     setCategoria("Comunicados")
     setDestino("portal")
+    setImagemUrl("")
     setErro(null)
     setOpenForm(true)
   }
@@ -71,14 +75,33 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
     setEditando(n)
     setCategoria(n.categoria)
     setDestino(n.destino)
+    setImagemUrl(n.imagem_url ?? "")
     setErro(null)
     setOpenForm(true)
+  }
+
+  async function enviarImagem(file: File) {
+    setErro(null)
+    setEnviandoImg(true)
+    try {
+      const fd = new FormData()
+      fd.set("file", file)
+      const res = await fetch("/api/noticias/upload", { method: "POST", body: fd })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Falha ao enviar a imagem.")
+      setImagemUrl(json.url)
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao enviar a imagem.")
+    } finally {
+      setEnviandoImg(false)
+    }
   }
 
   function submitForm(formData: FormData) {
     setErro(null)
     formData.set("categoria", categoria)
     formData.set("destino", destino)
+    formData.set("imagem_url", imagemUrl)
     startTransition(async () => {
       const res = editando ? await editarNoticia(editando.id, formData) : await criarNoticia(formData)
       if (res?.error) setErro(res.error)
@@ -169,9 +192,73 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
                 <Input id="titulo" name="titulo" defaultValue={editando?.titulo} placeholder="Título da notícia" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="resumo">Resumo</Label>
+                <Label htmlFor="resumo">Descrição</Label>
                 <Textarea id="resumo" name="resumo" defaultValue={editando?.resumo} placeholder="Breve descrição" rows={3} />
               </div>
+
+              {/* Anexar imagem */}
+              <div className="space-y-2">
+                <Label>Imagem</Label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) enviarImagem(f)
+                  }}
+                />
+                {imagemUrl ? (
+                  <div className="relative overflow-hidden rounded-md border border-border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imagemUrl || "/placeholder.svg"} alt="Pré-visualização da notícia" className="h-40 w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setImagemUrl("")}
+                      className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow hover:bg-background"
+                      aria-label="Remover imagem"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={enviandoImg}
+                    className="flex w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/30 px-4 py-6 text-sm text-muted-foreground transition-colors hover:bg-muted/50 disabled:opacity-60"
+                  >
+                    {enviandoImg ? (
+                      <>
+                        <Loader2 className="size-5 animate-spin" />
+                        Enviando imagem...
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="size-5" />
+                        Clique para anexar uma imagem
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Mencionar */}
+              <div className="space-y-2">
+                <Label htmlFor="mencao">Mencionar</Label>
+                <div className="relative">
+                  <AtSign className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="mencao"
+                    name="mencao"
+                    defaultValue={editando?.mencao ?? ""}
+                    placeholder="ex.: @CapitaniaSP, Diretoria de Portos"
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Categoria</Label>
@@ -227,6 +314,18 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
                   </div>
                 </div>
               ) : null}
+
+              {/* Rodapé */}
+              <div className="space-y-2">
+                <Label htmlFor="rodape">Rodapé</Label>
+                <Textarea
+                  id="rodape"
+                  name="rodape"
+                  defaultValue={editando?.rodape ?? ""}
+                  placeholder="Texto de rodapé, fonte ou assinatura da publicação"
+                  rows={2}
+                />
+              </div>
 
               {erro ? <p className="text-sm text-destructive">{erro}</p> : null}
             </div>

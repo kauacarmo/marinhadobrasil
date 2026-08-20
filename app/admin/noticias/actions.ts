@@ -22,6 +22,9 @@ export async function criarNoticia(formData: FormData) {
   const categoria = String(formData.get("categoria") || "Comunicados").trim()
   const data = String(formData.get("data") || "").trim()
   const destino = String(formData.get("destino") || "portal").trim() as DestinoNoticia
+  const imagem_url = String(formData.get("imagem_url") || "").trim() || null
+  const rodape = String(formData.get("rodape") || "").trim() || null
+  const mencao = String(formData.get("mencao") || "").trim() || null
 
   if (!titulo) return { error: "Informe o título da publicação." }
   if (!resumo) return { error: "Informe o resumo da publicação." }
@@ -32,18 +35,20 @@ export async function criarNoticia(formData: FormData) {
   const dataPublicacao = data || new Date().toISOString().slice(0, 10)
   const supabase = createAdminClient()
 
+  const payloadWebhook = { titulo, resumo, categoria, data: dataPublicacao, imagem_url, rodape, mencao }
+
   // Grava no portal apenas quando o destino inclui o site
   if (destino === "portal" || destino === "ambos") {
     const { error } = await supabase
       .from("noticias")
-      .insert({ titulo, resumo, categoria, data: dataPublicacao, destino })
+      .insert({ titulo, resumo, categoria, data: dataPublicacao, destino, imagem_url, rodape, mencao })
     if (error) return { error: error.message }
-    await dispararWebhooks("noticias", "publicada", { titulo, resumo, categoria, data: dataPublicacao })
+    await dispararWebhooks("noticias", "publicada", payloadWebhook)
   }
 
   // Dispara o canal Diário Naval quando incluído no destino
   if (destino === "diario_naval" || destino === "ambos") {
-    await dispararWebhooks("diario_naval", "publicada", { titulo, resumo, categoria, data: dataPublicacao })
+    await dispararWebhooks("diario_naval", "publicada", payloadWebhook)
   }
 
   revalidatePath("/admin/noticias")
@@ -60,8 +65,12 @@ export async function editarNoticia(id: string, formData: FormData) {
   if (!titulo) return { error: "Informe o título da publicação." }
   if (!resumo) return { error: "Informe o resumo da publicação." }
 
+  const imagem_url = String(formData.get("imagem_url") || "").trim() || null
+  const rodape = String(formData.get("rodape") || "").trim() || null
+  const mencao = String(formData.get("mencao") || "").trim() || null
+
   const supabase = createAdminClient()
-  const patch: Record<string, unknown> = { titulo, resumo, categoria }
+  const patch: Record<string, unknown> = { titulo, resumo, categoria, imagem_url, rodape, mencao }
   if (data) patch.data = data
   const { error } = await supabase.from("noticias").update(patch).eq("id", id)
   if (error) return { error: error.message }

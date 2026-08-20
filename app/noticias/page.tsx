@@ -19,10 +19,20 @@ export default async function NoticiasPage() {
   // Somente as notícias destinadas ao portal do site
   const doPortal = publicadas
     .filter((n) => n.destino === "portal" || n.destino === "ambos")
-    .map((n) => ({ id: n.id, titulo: n.titulo, resumo: n.resumo, data: n.data.split("T")[0], categoria: n.categoria }))
+    .map((n) => ({
+      id: n.id,
+      titulo: n.titulo,
+      resumo: n.resumo,
+      data: n.data.split("T")[0],
+      categoria: n.categoria,
+      imagem_url: n.imagem_url,
+      rodape: n.rodape,
+      mencao: n.mencao,
+    }))
 
   // Usa as publicações do portal; se não houver nenhuma, exibe o conteúdo de exemplo
-  const noticias = doPortal.length > 0 ? doPortal : noticiasEstaticas
+  const fallback = noticiasEstaticas.map((n) => ({ ...n, imagem_url: null, rodape: null, mencao: null }))
+  const noticias = doPortal.length > 0 ? doPortal : fallback
   const [destaque, ...demais] = noticias
 
   return (
@@ -48,15 +58,30 @@ export default async function NoticiasPage() {
                     {destaque.titulo}
                   </h2>
                   <p className="leading-relaxed text-primary-foreground/80">{destaque.resumo}</p>
-                  <span className="text-sm text-primary-foreground/60">
-                    {formatarData(destaque.data)}
-                  </span>
+                  {destaque.mencao ? (
+                    <p className="text-sm font-medium text-primary-foreground/70">{destaque.mencao}</p>
+                  ) : null}
+                  <span className="text-sm text-primary-foreground/60">{formatarData(destaque.data)}</span>
+                  {destaque.rodape ? (
+                    <p className="mt-1 border-t border-primary-foreground/20 pt-3 text-xs text-primary-foreground/60 text-pretty">
+                      {destaque.rodape}
+                    </p>
+                  ) : null}
                 </div>
-                <div className="flex items-center justify-center bg-secondary p-8">
-                  <p className="text-center font-serif text-lg text-primary/70 text-pretty">
-                    Publicação oficial da Diretoria de Ensino da Marinha do Brasil
-                  </p>
-                </div>
+                {destaque.imagem_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={destaque.imagem_url || "/placeholder.svg"}
+                    alt={destaque.titulo}
+                    className="h-full min-h-56 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center bg-secondary p-8">
+                    <p className="text-center font-serif text-lg text-primary/70 text-pretty">
+                      Publicação oficial da Diretoria de Ensino da Marinha do Brasil
+                    </p>
+                  </div>
+                )}
               </div>
             </article>
           )}
@@ -66,18 +91,34 @@ export default async function NoticiasPage() {
             {demais.map((noticia) => (
               <article
                 key={noticia.id}
-                className="flex flex-col rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md"
+                className="flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-shadow hover:shadow-md"
               >
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{noticia.categoria}</Badge>
-                  <span className="text-xs text-muted-foreground">{formatarData(noticia.data)}</span>
+                {noticia.imagem_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={noticia.imagem_url || "/placeholder.svg"}
+                    alt={noticia.titulo}
+                    className="h-40 w-full object-cover"
+                  />
+                ) : null}
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">{noticia.categoria}</Badge>
+                    <span className="text-xs text-muted-foreground">{formatarData(noticia.data)}</span>
+                  </div>
+                  <h3 className="mt-3 font-serif text-lg font-bold leading-snug text-primary text-pretty">
+                    {noticia.titulo}
+                  </h3>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{noticia.resumo}</p>
+                  {noticia.mencao ? (
+                    <p className="mt-3 text-xs font-medium text-accent">{noticia.mencao}</p>
+                  ) : null}
+                  {noticia.rodape ? (
+                    <p className="mt-2 border-t border-border pt-2 text-xs text-muted-foreground text-pretty">
+                      {noticia.rodape}
+                    </p>
+                  ) : null}
                 </div>
-                <h3 className="mt-3 font-serif text-lg font-bold leading-snug text-primary text-pretty">
-                  {noticia.titulo}
-                </h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">
-                  {noticia.resumo}
-                </p>
               </article>
             ))}
           </div>
