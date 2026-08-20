@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { montarCorpoWebhook } from "@/lib/webhooks"
 import type { AbaWebhook, Webhook } from "@/lib/types"
 
 export async function listWebhooks(): Promise<Webhook[]> {
@@ -70,12 +71,7 @@ export async function testarWebhook(id: string) {
         "X-Webhook-Aba": webhook.aba,
         "X-Webhook-Evento": "teste",
       },
-      body: JSON.stringify({
-        aba: webhook.aba,
-        evento: "teste",
-        dados: { mensagem: "Disparo de teste do painel administrativo." },
-        enviado_em: new Date().toISOString(),
-      }),
+      body: montarCorpoWebhook(webhook.url, webhook.aba, "teste", null),
     })
     if (!res.ok) return { error: `O endpoint respondeu com status ${res.status}.` }
     return { success: true, message: "Teste enviado com sucesso." }

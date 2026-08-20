@@ -37,12 +37,15 @@ export async function criarNoticia(formData: FormData) {
 
   const payloadWebhook = { titulo, resumo, categoria, data: dataPublicacao, imagem_url, rodape, mencao }
 
-  // Grava no portal apenas quando o destino inclui o site
+  // Sempre grava a notícia para que apareça na aba Notícias do admin.
+  // A página pública (/noticias) já filtra pelo destino escolhido.
+  const { error } = await supabase
+    .from("noticias")
+    .insert({ titulo, resumo, categoria, data: dataPublicacao, destino, imagem_url, rodape, mencao })
+  if (error) return { error: error.message }
+
+  // Dispara o webhook do portal quando o destino inclui o site
   if (destino === "portal" || destino === "ambos") {
-    const { error } = await supabase
-      .from("noticias")
-      .insert({ titulo, resumo, categoria, data: dataPublicacao, destino, imagem_url, rodape, mencao })
-    if (error) return { error: error.message }
     await dispararWebhooks("noticias", "publicada", payloadWebhook)
   }
 
