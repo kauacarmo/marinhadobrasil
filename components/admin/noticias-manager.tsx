@@ -262,7 +262,7 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Categoria</Label>
-                  <Select value={categoria} onValueChange={setCategoria}>
+                  <Select value={categoria} onValueChange={(v) => setCategoria(v ?? "")}>
                     <SelectTrigger>
                       <SelectValue>{categoria}</SelectValue>
                     </SelectTrigger>

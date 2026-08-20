@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
-import { enviarManifestacao } from "@/app/ouvidoria/actions"
+import { registrarManifestacao } from "@/app/ouvidoria/actions"
 
 const TIPOS = [
   { valor: "elogio", label: "Elogio" },
@@ -24,7 +24,7 @@ export function OuvidoriaForm() {
   async function onSubmit(formData: FormData) {
     setEnviando(true)
     setErro(null)
-    const res = await enviarManifestacao(formData)
+    const res = await registrarManifestacao(null, formData)
     setEnviando(false)
     if (res?.error) setErro(res.error)
     else if (res?.protocolo) setProtocolo(res.protocolo)

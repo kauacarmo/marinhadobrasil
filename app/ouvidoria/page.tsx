@@ -22,8 +22,8 @@ export default function OuvidoriaPage() {
       <SiteHeader />
       <PageHero
         titulo="Ouvidoria"
-        subtitulo="Sua manifestação nos ajuda a melhorar o atendimento e os serviços prestados ao cidadão."
-        breadcrumb={[
+        descricao="Sua manifestação nos ajuda a melhorar o atendimento e os serviços prestados ao cidadão."
+        migalhas={[
           { label: "Início", href: "/" },
           { label: "Ouvidoria" },
         ]}

@@ -185,7 +185,7 @@ export function UsuariosManager({ usuarios }: { usuarios: AdminUser[] }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Posto / Cargo</Label>
-                  <Select value={papel} onValueChange={setPapel}>
+                  <Select value={papel} onValueChange={(v) => setPapel(v ?? "")}>
                     <SelectTrigger>
                       <SelectValue>{papel}</SelectValue>
                     </SelectTrigger>

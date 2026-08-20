@@ -298,11 +298,14 @@ export function DocumentosManager({
           ) : null}
           <DialogFooter className="border-t border-border bg-card px-6 py-3">
             {vendo?.pdf_url ? (
-              <Button variant="outline" asChild>
-                <a href={vendo.pdf_url} target="_blank" rel="noreferrer">
-                  <Eye className="size-4" /> Abrir PDF
-                </a>
-              </Button>
+              <Button
+                variant="outline"
+                render={
+                  <a href={vendo.pdf_url} target="_blank" rel="noreferrer">
+                    <Eye className="size-4" /> Abrir PDF
+                  </a>
+                }
+              />
             ) : null}
             <Button variant="outline" onClick={() => window.print()}>
               <Printer className="size-4" /> Imprimir
