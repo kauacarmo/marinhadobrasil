@@ -53,6 +53,13 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
         </p>
 
         <div className="mx-auto mt-6 max-w-sm rounded-lg border border-border bg-muted/40 p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Número de inscrição</p>
+          <p className="mt-2 font-mono text-2xl font-bold tracking-wide text-foreground">
+            {resultado.numeroInscricao}
+          </p>
+        </div>
+
+        <div className="mx-auto mt-4 max-w-sm rounded-lg border border-border bg-muted/40 p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Seu código de acesso à prova
           </p>
@@ -103,7 +110,7 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
         <h2 className="mt-4 font-serif text-2xl font-bold">Pronto para se inscrever?</h2>
         <p className="mx-auto mt-1 max-w-md text-muted-foreground text-pretty">
           Clique no botão abaixo para iniciar sua inscrição. Você informará o ID do jogo, o nome do personagem, seus
-          dados pessoais e a data de nascimento.
+          dados pessoais e a data de nascimento. O número de inscrição é gerado automaticamente.
         </p>
         <Button size="lg" className="mt-5" onClick={() => setAberto(true)}>
           Iniciar inscrição <ArrowRight className="size-4" />
@@ -155,9 +162,8 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="numero_inscricao">Número de inscrição</Label>
-          <Input id="numero_inscricao" name="numero_inscricao" placeholder="ex.: 2026-00123" />
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-2.5 text-sm text-muted-foreground">
+          O número de inscrição é gerado automaticamente ao concluir a inscrição.
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
