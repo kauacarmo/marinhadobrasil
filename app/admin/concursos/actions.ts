@@ -193,6 +193,22 @@ export async function atualizarStatus(id: string, status: ContestStatus) {
   return { success: true }
 }
 
+export async function atualizarStatusPrevisto(
+  id: string,
+  statusPrevisto: ContestStatus | null,
+  data: string | null,
+) {
+  const supabase = createAdminClient()
+  const { error } = await supabase
+    .from("contests")
+    .update({ status_previsto: statusPrevisto, status_previsto_data: data || null })
+    .eq("id", id)
+  if (error) return { error: error.message }
+  revalidatePath("/admin/concursos")
+  revalidatePath("/concursos")
+  return { success: true }
+}
+
 export async function apagarContest(id: string) {
   const supabase = createAdminClient()
   const { error } = await supabase.from("contests").delete().eq("id", id)
@@ -200,6 +216,19 @@ export async function apagarContest(id: string) {
   revalidatePath("/admin/concursos")
   revalidatePath("/")
   return { success: true }
+}
+
+// Remove questões duplicadas comparando o enunciado normalizado
+function removerRepetidas(questoes: Questao[]): Questao[] {
+  const vistos = new Set<string>()
+  const unicas: Questao[] = []
+  for (const q of questoes) {
+    const chave = q.enunciado.trim().toLowerCase().replace(/\s+/g, " ")
+    if (!chave || vistos.has(chave)) continue
+    vistos.add(chave)
+    unicas.push(q)
+  }
+  return unicas
 }
 
 // Gera a prova por IA a partir do tema do concurso
@@ -232,19 +261,26 @@ export async function gerarProva(contestId: string) {
           .describe(`Exatamente ${QTD_QUESTOES} questões`),
       }),
       prompt: `Você é um elaborador de provas de concurso público da Marinha do Brasil (Capitania dos Portos de São Paulo).
-Gere uma prova de múltipla escolha com ${QTD_QUESTOES} questões para o cargo de "${c.cargo}".
-Tema/conteúdo programático: ${c.tema_prova}.
-As questões devem ser objetivas, variadas e sem repetição, cada uma com 4 alternativas, e apenas uma correta.
+Gere uma prova de múltipla escolha com ${QTD_QUESTOES} questões para o concurso a seguir.
+Título do concurso: "${c.titulo}".
+Cargo: "${c.cargo}".
+${c.descricao ? `Descrição do concurso: ${c.descricao}.` : ""}
+Conteúdo programático/tema: ${c.tema_prova}.
+As questões devem ser fortemente relacionadas ao título e à descrição do concurso e ao conteúdo programático.
+IMPORTANTE: as questões devem ser todas DIFERENTES entre si — não repita enunciados nem crie variações quase idênticas.
+Cada questão deve ter exatamente 4 alternativas e apenas uma correta.
 Use linguagem formal e nível compatível com concurso público. Responda em português do Brasil.`,
     })
-    questoes = object.questoes
+    questoes = removerRepetidas(object.questoes)
     origem = "ia"
   } catch {
     // Fallback: geração por IA indisponível (ex.: AI Gateway sem cartão).
     // Usa o banco de questões de exemplo por tema para não travar o fluxo.
-    questoes = gerarProvaFallback(c.tema_prova, QTD_QUESTOES)
+    questoes = removerRepetidas(gerarProvaFallback(c.tema_prova, QTD_QUESTOES))
     origem = "banco"
   }
+
+  if (questoes.length === 0) return { error: "Não foi possível gerar questões para este concurso." }
 
   const titulo = `Prova — ${c.cargo}`
   const { error } = await supabase

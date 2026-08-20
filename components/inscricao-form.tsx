@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useEffect, useState, useTransition } from "react"
 import Link from "next/link"
 import type { Contest } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { realizarInscricao } from "@/app/inscricao/actions"
+import { realizarInscricao, proximoNumeroInscricao } from "@/app/inscricao/actions"
 import { ClipboardCheck, Copy, Check, FileEdit, ArrowRight, Anchor } from "lucide-react"
 
 type Resultado = {
@@ -23,7 +23,20 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
   const [erro, setErro] = useState<string | null>(null)
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const [copiado, setCopiado] = useState(false)
+  const [numeroPrevisto, setNumeroPrevisto] = useState<string>("")
   const [isPending, startTransition] = useTransition()
+
+  // Busca o próximo número de inscrição quando o formulário é aberto
+  useEffect(() => {
+    if (!aberto) return
+    let ativo = true
+    proximoNumeroInscricao().then((n) => {
+      if (ativo) setNumeroPrevisto(n)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [aberto])
 
   if (concursos.length === 0) {
     return (
@@ -53,6 +66,13 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
         </p>
 
         <div className="mx-auto mt-6 max-w-sm rounded-lg border border-border bg-muted/40 p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Número de inscrição</p>
+          <p className="mt-2 font-mono text-2xl font-bold tracking-wide text-foreground">
+            {resultado.numeroInscricao}
+          </p>
+        </div>
+
+        <div className="mx-auto mt-4 max-w-sm rounded-lg border border-border bg-muted/40 p-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Seu código de acesso à prova
           </p>
@@ -103,7 +123,7 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
         <h2 className="mt-4 font-serif text-2xl font-bold">Pronto para se inscrever?</h2>
         <p className="mx-auto mt-1 max-w-md text-muted-foreground text-pretty">
           Clique no botão abaixo para iniciar sua inscrição. Você informará o ID do jogo, o nome do personagem, seus
-          dados pessoais e a data de nascimento.
+          dados pessoais e a data de nascimento. O número de inscrição é gerado automaticamente.
         </p>
         <Button size="lg" className="mt-5" onClick={() => setAberto(true)}>
           Iniciar inscrição <ArrowRight className="size-4" />
@@ -157,7 +177,14 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
 
         <div className="space-y-2">
           <Label htmlFor="numero_inscricao">Número de inscrição</Label>
-          <Input id="numero_inscricao" name="numero_inscricao" placeholder="ex.: 2026-00123" />
+          <Input
+            id="numero_inscricao"
+            value={numeroPrevisto || "Gerando..."}
+            readOnly
+            aria-readonly="true"
+            className="bg-muted/50 font-mono font-semibold text-muted-foreground"
+          />
+          <p className="text-xs text-muted-foreground">Gerado automaticamente. Confirmado ao concluir a inscrição.</p>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
@@ -169,11 +196,6 @@ export function InscricaoForm({ concursos }: { concursos: Contest[] }) {
             <Label htmlFor="nome_personagem">Nome do personagem</Label>
             <Input id="nome_personagem" name="nome_personagem" placeholder="ex.: Guerra Mórmon" />
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="nome">Nome</Label>
-          <Input id="nome" name="nome" placeholder="Nome completo" />
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">

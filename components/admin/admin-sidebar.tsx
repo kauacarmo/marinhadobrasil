@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { Brasao } from "@/components/brasao"
 import { cn } from "@/lib/utils"
+import { cargosRestritos } from "@/lib/cargos-marinha"
 
 const navItems = [
   { href: "/admin", label: "Painel", icon: LayoutDashboard },
@@ -32,9 +33,15 @@ const navItems = [
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ]
 
-export function AdminSidebar() {
+// Guias visíveis para cargos com acesso restrito (ex.: Publicitário)
+const guiasRestritas = ["/admin", "/admin/noticias"]
+
+export function AdminSidebar({ papel = "" }: { papel?: string }) {
   const pathname = usePathname()
   const router = useRouter()
+
+  const restrito = cargosRestritos.includes(papel)
+  const itens = restrito ? navItems.filter((i) => guiasRestritas.includes(i.href)) : navItems
 
   async function handleSair() {
     await sair()
@@ -53,7 +60,7 @@ export function AdminSidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => {
+        {itens.map((item) => {
           const active =
             item.href === "/admin"
               ? pathname === "/admin"

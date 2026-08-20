@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, useTransition } from "react"
-import { Search, Pencil, Trash2, Eraser, Users } from "lucide-react"
+import { Search, Pencil, Trash2, Eraser, Users, Award, Clock3, FileText, Check, X, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,8 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { CandidatoComConcurso } from "@/app/admin/candidatos/actions"
-import { editarCandidato, apagarCandidato, limparTodos } from "@/app/admin/candidatos/actions"
+import type { CandidatoComConcurso, ProvaCandidato } from "@/app/admin/candidatos/actions"
+import { editarCandidato, apagarCandidato, limparTodos, getProvaCandidato } from "@/app/admin/candidatos/actions"
 
 function formatData(iso: string) {
   const [y, m, d] = iso.split("T")[0].split("-")
@@ -40,8 +40,27 @@ export function CandidatosManager({ candidatos }: { candidatos: CandidatoComConc
   const [erro, setErro] = useState<string | null>(null)
 
   const [editando, setEditando] = useState<CandidatoComConcurso | null>(null)
+  const [verNota, setVerNota] = useState<CandidatoComConcurso | null>(null)
   const [confirmarApagar, setConfirmarApagar] = useState<CandidatoComConcurso | null>(null)
   const [openLimpar, setOpenLimpar] = useState(false)
+
+  const [provaAberta, setProvaAberta] = useState(false)
+  const [prova, setProva] = useState<ProvaCandidato | null>(null)
+  const [provaErro, setProvaErro] = useState<string | null>(null)
+  const [carregandoProva, setCarregandoProva] = useState<string | null>(null)
+
+  function abrirProva(c: CandidatoComConcurso) {
+    setProva(null)
+    setProvaErro(null)
+    setCarregandoProva(c.id)
+    setProvaAberta(true)
+    startTransition(async () => {
+      const res = await getProvaCandidato(c.id)
+      setCarregandoProva(null)
+      if (res.error) setProvaErro(res.error)
+      else setProva(res.prova ?? null)
+    })
+  }
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase()
@@ -156,6 +175,24 @@ export function CandidatosManager({ candidatos }: { candidatos: CandidatoComConc
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setVerNota(c)}
+                      aria-label="Ver nota"
+                      className="text-primary hover:text-primary"
+                    >
+                      <Award className="size-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => abrirProva(c)}
+                      aria-label="Ver prova"
+                      className="text-primary hover:text-primary"
+                    >
+                      <FileText className="size-4" />
+                    </Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditando(c)} aria-label="Editar">
                       <Pencil className="size-4" />
                     </Button>
@@ -239,6 +276,142 @@ export function CandidatosManager({ candidatos }: { candidatos: CandidatoComConc
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ver nota do candidato */}
+      <Dialog open={!!verNota} onOpenChange={(o) => !o && setVerNota(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-serif">Nota da prova</DialogTitle>
+            <DialogDescription>
+              {verNota?.nome_personagem || verNota?.nome} — {verNota?.concurso_titulo}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {verNota && verNota.prova_finalizada_em && verNota.total_questoes ? (
+              <div className="rounded-lg border border-border bg-muted/40 p-6 text-center">
+                <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-accent/15">
+                  <Award className="size-6 text-accent" />
+                </div>
+                <p className="mt-4 font-serif text-4xl font-bold text-primary">
+                  {verNota.acertos}
+                  <span className="text-xl text-muted-foreground">/{verNota.total_questoes}</span>
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {Math.round(((verNota.acertos ?? 0) / verNota.total_questoes) * 100)}% de aproveitamento
+                </p>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Prova finalizada em {formatData(verNota.prova_finalizada_em)}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
+                <Clock3 className="size-6" />
+                <p className="text-sm">Este candidato ainda não realizou a prova.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVerNota(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ver prova do candidato */}
+      <Dialog open={provaAberta} onOpenChange={(o) => !o && setProvaAberta(false)}>
+        <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Prova do candidato</DialogTitle>
+            <DialogDescription>
+              {prova ? (
+                <>
+                  {prova.candidato} — {prova.concurso}
+                </>
+              ) : (
+                "Carregando a prova respondida..."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            {carregandoProva ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+                <Loader2 className="size-5 animate-spin" /> Carregando...
+              </div>
+            ) : provaErro ? (
+              <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
+                <Clock3 className="size-6" />
+                <p className="text-sm">{provaErro}</p>
+              </div>
+            ) : prova ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-3">
+                  <span className="text-sm text-muted-foreground">Aproveitamento</span>
+                  <span className="font-serif text-lg font-bold text-primary">
+                    {prova.acertos}/{prova.total}{" "}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      ({prova.total > 0 ? Math.round((prova.acertos / prova.total) * 100) : 0}%)
+                    </span>
+                  </span>
+                </div>
+
+                {prova.questoes.map((q, i) => (
+                  <div key={i} className="rounded-lg border border-border p-4">
+                    <div className="flex items-start gap-2">
+                      <span
+                        className={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${
+                          q.certo ? "bg-emerald-600" : "bg-destructive"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {q.certo ? <Check className="size-3" /> : <X className="size-3" />}
+                      </span>
+                      <p className="text-sm font-medium text-foreground">
+                        {i + 1}. {q.enunciado}
+                      </p>
+                    </div>
+                    <ul className="mt-3 space-y-1.5 pl-7">
+                      {q.alternativas.map((alt, j) => {
+                        const ehCorreta = j === q.correta
+                        const ehMarcada = j === q.marcada
+                        return (
+                          <li
+                            key={j}
+                            className={`flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm ${
+                              ehCorreta
+                                ? "bg-emerald-600/10 font-medium text-emerald-700"
+                                : ehMarcada
+                                  ? "bg-destructive/10 font-medium text-destructive"
+                                  : "text-muted-foreground"
+                            }`}
+                          >
+                            <span className="font-mono text-xs">{String.fromCharCode(65 + j)})</span>
+                            <span className="flex-1">{alt}</span>
+                            {ehCorreta ? <span className="text-xs font-semibold">Correta</span> : null}
+                            {ehMarcada && !ehCorreta ? (
+                              <span className="text-xs font-semibold">Marcada</span>
+                            ) : null}
+                          </li>
+                        )
+                      })}
+                      {q.marcada === null ? (
+                        <li className="px-2.5 text-xs italic text-muted-foreground">Sem resposta marcada</li>
+                      ) : null}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProvaAberta(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

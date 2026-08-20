@@ -36,10 +36,17 @@ export const cargosMarinha: { grupo: string; cargos: string[] }[] = [
     ],
   },
   {
+    grupo: "Comunicação Social",
+    cargos: ["Publicitário"],
+  },
+  {
     grupo: "Administrativo",
     cargos: ["Administrador", "Operador"],
   },
 ]
+
+// Cargos com acesso restrito no painel (veem apenas a área de Notícias).
+export const cargosRestritos: string[] = ["Publicitário"]
 
 // Lista achatada, útil para validação e selects simples.
 export const todosOsCargos: string[] = cargosMarinha.flatMap((g) => g.cargos)
