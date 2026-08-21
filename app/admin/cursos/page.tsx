@@ -1,11 +1,11 @@
 import { AdminTopbar } from "@/components/admin/admin-topbar"
 import { CursosManager } from "@/components/admin/cursos-manager"
-import { listCursos } from "./actions"
+import { listCursos, listInstrutores } from "./actions"
 
 export const dynamic = "force-dynamic"
 
 export default async function AdminCursosPage() {
-  const cursos = await listCursos()
+  const [cursos, instrutores] = await Promise.all([listCursos(), listInstrutores()])
 
   return (
     <>
@@ -14,7 +14,7 @@ export default async function AdminCursosPage() {
         descricao="Cadastre cursos e acompanhe as inscrições dos candidatos."
       />
       <div className="p-6">
-        <CursosManager cursos={cursos} />
+        <CursosManager cursos={cursos} instrutores={instrutores} />
       </div>
     </>
   )
