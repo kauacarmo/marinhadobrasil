@@ -3,6 +3,67 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import type { AbaWebhook } from "@/lib/types"
 
 /**
+ * Monta uma mensagem legível a partir do evento e dos dados.
+ * Usada para canais como Discord e Slack, que exibem texto simples.
+ */
+export function montarMensagem(evento: string, dados: unknown): string {
+  if (evento === "teste") {
+    return "O sistema está fazendo testes neste canal..."
+  }
+
+  if (dados && typeof dados === "object") {
+    const d = dados as Record<string, unknown>
+    if (typeof d.titulo === "string" && d.titulo.trim()) {
+      const linhas: string[] = []
+      if (typeof d.mencao === "string" && d.mencao.trim()) linhas.push(String(d.mencao).trim())
+      linhas.push(`📰 **${String(d.titulo).trim()}**`)
+      if (typeof d.categoria === "string" && d.categoria.trim()) linhas.push(`Categoria: ${String(d.categoria).trim()}`)
+      if (typeof d.resumo === "string" && d.resumo.trim()) linhas.push(String(d.resumo).trim())
+      if (typeof d.imagem_url === "string" && d.imagem_url.trim()) linhas.push(String(d.imagem_url).trim())
+      if (typeof d.rodape === "string" && d.rodape.trim()) linhas.push(`_${String(d.rodape).trim()}_`)
+      return linhas.join("\n")
+    }
+  }
+
+  return `Novo evento: ${evento}`
+}
+
+/**
+ * Monta o corpo do POST de acordo com o destino.
+ * - Discord: usa { content } (e embed com imagem quando houver).
+ * - Slack: usa { text }.
+ * - Genérico: envia o payload completo e também content/text para máxima compatibilidade.
+ */
+export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string, dados: unknown): string {
+  const mensagem = montarMensagem(evento, dados)
+  const enviado_em = new Date().toISOString()
+  const limpa = url.trim()
+
+  const ehDiscord = /discord(app)?\.com\/api\/webhooks/i.test(limpa)
+  const ehSlack = /hooks\.slack\.com/i.test(limpa)
+
+  // Endpoints de compatibilidade do Discord exigem o formato do provedor de origem.
+  // Ex.: .../webhooks/ID/TOKEN/slack espera { text }, não { content }.
+  const ehDiscordSlack = ehDiscord && /\/slack\b/i.test(limpa)
+  const ehDiscordGithub = ehDiscord && /\/github\b/i.test(limpa)
+
+  if (ehSlack || ehDiscordSlack) {
+    return JSON.stringify({ text: mensagem })
+  }
+
+  if (ehDiscord && !ehDiscordGithub) {
+    const d = (dados && typeof dados === "object" ? dados : {}) as Record<string, unknown>
+    const corpo: Record<string, unknown> = { content: mensagem }
+    if (evento !== "teste" && typeof d.imagem_url === "string" && /^https?:\/\//i.test(d.imagem_url)) {
+      corpo.embeds = [{ image: { url: d.imagem_url } }]
+    }
+    return JSON.stringify(corpo)
+  }
+
+  return JSON.stringify({ aba, evento, dados, mensagem, content: mensagem, text: mensagem, enviado_em })
+}
+
+/**
  * Dispara os webhooks ativos de uma aba, enviando um POST com o evento e os dados.
  * Falhas de entrega são registradas no log, mas nunca interrompem a operação principal.
  */
@@ -17,26 +78,23 @@ export async function dispararWebhooks(aba: AbaWebhook, evento: string, dados: u
 
     if (!webhooks || webhooks.length === 0) return
 
-    const payload = JSON.stringify({
-      aba,
-      evento,
-      dados,
-      enviado_em: new Date().toISOString(),
-    })
-
     await Promise.allSettled(
       webhooks.map((w) =>
-        fetch(w.url, {
+        fetch(w.url.trim(), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "X-Webhook-Aba": aba,
             "X-Webhook-Evento": evento,
           },
-          body: payload,
-        }).catch((err) => {
-          console.log("[v0] Falha ao entregar webhook:", w.url, String(err))
-        }),
+          body: montarCorpoWebhook(w.url, aba, evento, dados),
+        })
+          .then((res) => {
+            if (!res.ok) console.log("[v0] Webhook respondeu com status", res.status, w.url)
+          })
+          .catch((err) => {
+            console.log("[v0] Falha ao entregar webhook:", w.url, String(err))
+          }),
       ),
     )
   } catch (err) {
