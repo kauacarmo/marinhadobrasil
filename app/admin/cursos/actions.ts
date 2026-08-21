@@ -2,7 +2,35 @@
 
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
-import type { Curso, CursoComVagas, CursoInscricao } from "@/lib/types"
+import type { Curso, CursoComVagas, CursoInscricao, Instrutor } from "@/lib/types"
+
+export async function listInstrutores(): Promise<Instrutor[]> {
+  const supabase = createAdminClient()
+  const { data } = await supabase.from("instrutores").select("*").order("nome", { ascending: true })
+  return (data as Instrutor[]) ?? []
+}
+
+export async function criarInstrutor(formData: FormData) {
+  const nome = String(formData.get("nome") || "").trim()
+  const patente = String(formData.get("patente") || "").trim() || null
+  const especialidade = String(formData.get("especialidade") || "").trim() || null
+  if (!nome) return { error: "Informe o nome do instrutor." }
+
+  const supabase = createAdminClient()
+  const { error } = await supabase.from("instrutores").insert({ nome, patente, especialidade })
+  if (error) return { error: error.message }
+
+  revalidatePath("/admin/cursos")
+  return { success: true }
+}
+
+export async function apagarInstrutor(id: string) {
+  const supabase = createAdminClient()
+  const { error } = await supabase.from("instrutores").delete().eq("id", id)
+  if (error) return { error: error.message }
+  revalidatePath("/admin/cursos")
+  return { success: true }
+}
 
 export async function listCursos(): Promise<CursoComVagas[]> {
   const supabase = createAdminClient()

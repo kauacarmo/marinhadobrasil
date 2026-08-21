@@ -18,6 +18,14 @@ export type Curso = {
 
 export type CursoComVagas = Curso & { inscritos: number }
 
+export type Instrutor = {
+  id: string
+  nome: string
+  patente: string | null
+  especialidade: string | null
+  created_at: string
+}
+
 export type CursoInscricao = {
   id: string
   curso_id: string

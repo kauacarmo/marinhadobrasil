@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import type { CursoComVagas, CursoInscricao } from "@/lib/types"
+import type { CursoComVagas, CursoInscricao, Instrutor } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,6 +29,7 @@ import {
   GraduationCap,
   CheckCircle2,
   Loader2,
+  UserCog,
 } from "lucide-react"
 import {
   criarCurso,
@@ -36,6 +37,8 @@ import {
   alternarPublicacaoCurso,
   apagarCurso,
   listInscritosCurso,
+  criarInstrutor,
+  apagarInstrutor,
 } from "@/app/admin/cursos/actions"
 
 function fmtData(iso?: string | null) {
@@ -45,13 +48,20 @@ function fmtData(iso?: string | null) {
   return `${d}/${m}/${a}`
 }
 
-export function CursosManager({ cursos }: { cursos: CursoComVagas[] }) {
+export function CursosManager({
+  cursos,
+  instrutores,
+}: {
+  cursos: CursoComVagas[]
+  instrutores: Instrutor[]
+}) {
   const [isPending, startTransition] = useTransition()
   const [msg, setMsg] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [openNovo, setOpenNovo] = useState(false)
   const [editando, setEditando] = useState<CursoComVagas | null>(null)
   const [previewImg, setPreviewImg] = useState<string | null>(null)
+  const [openInstrutores, setOpenInstrutores] = useState(false)
 
   const [inscritos, setInscritos] = useState<CursoInscricao[] | null>(null)
   const [cursoInscritos, setCursoInscritos] = useState<CursoComVagas | null>(null)
@@ -107,6 +117,22 @@ export function CursosManager({ cursos }: { cursos: CursoComVagas[] }) {
     })
   }
 
+  function submitInstrutor(formData: FormData) {
+    setErro(null)
+    startTransition(async () => {
+      const res = await criarInstrutor(formData)
+      if (res?.error) setErro(res.error)
+      else flash("Instrutor cadastrado.")
+    })
+  }
+
+  function removerInstrutor(id: string) {
+    startTransition(async () => {
+      await apagarInstrutor(id)
+      flash("Instrutor removido.")
+    })
+  }
+
   function verInscritos(c: CursoComVagas) {
     setCursoInscritos(c)
     setInscritos(null)
@@ -131,7 +157,13 @@ export function CursosManager({ cursos }: { cursos: CursoComVagas[] }) {
         </div>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" onClick={() => setOpenInstrutores(true)}>
+          <UserCog className="size-4" /> Instrutores
+          <Badge variant="secondary" className="ml-1">
+            {instrutores.length}
+          </Badge>
+        </Button>
         <Button onClick={() => setOpenNovo(true)}>
           <Plus className="size-4" /> Novo curso
         </Button>
@@ -233,7 +265,7 @@ export function CursosManager({ cursos }: { cursos: CursoComVagas[] }) {
               <DialogTitle className="font-serif">Novo curso</DialogTitle>
               <DialogDescription>Cadastre um curso da Marinha para a área do candidato.</DialogDescription>
             </DialogHeader>
-            <CamposCurso previewImg={previewImg} setPreviewImg={setPreviewImg} />
+            <CamposCurso previewImg={previewImg} setPreviewImg={setPreviewImg} instrutores={instrutores} />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpenNovo(false)}>
                 Cancelar
@@ -262,7 +294,12 @@ export function CursosManager({ cursos }: { cursos: CursoComVagas[] }) {
               <DialogTitle className="font-serif">Editar curso</DialogTitle>
               <DialogDescription>Atualize as informações e a imagem do curso.</DialogDescription>
             </DialogHeader>
-            <CamposCurso curso={editando} previewImg={previewImg} setPreviewImg={setPreviewImg} />
+            <CamposCurso
+              curso={editando}
+              previewImg={previewImg}
+              setPreviewImg={setPreviewImg}
+              instrutores={instrutores}
+            />
             <DialogFooter>
               <Button
                 type="button"
@@ -326,6 +363,70 @@ export function CursosManager({ cursos }: { cursos: CursoComVagas[] }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Instrutores */}
+      <Dialog open={openInstrutores} onOpenChange={setOpenInstrutores}>
+        <DialogContent className="max-h-[88vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-serif">Instrutores</DialogTitle>
+            <DialogDescription>
+              Cadastre os instrutores para vinculá-los aos cursos no campo &quot;Instrutor&quot;.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form action={submitInstrutor} className="grid gap-3 border-b border-border pb-5">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="i-patente">Patente / Posto</Label>
+                <Input id="i-patente" name="patente" placeholder="ex.: CT (RM2)" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="i-especialidade">Especialidade</Label>
+                <Input id="i-especialidade" name="especialidade" placeholder="ex.: Navegação" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="i-nome">Nome</Label>
+              <Input id="i-nome" name="nome" placeholder="ex.: Silva" required />
+            </div>
+            <div className="flex justify-end">
+              <Button type="submit" size="sm" disabled={isPending}>
+                <Plus className="size-4" /> {isPending ? "Salvando..." : "Adicionar instrutor"}
+              </Button>
+            </div>
+          </form>
+
+          <div className="py-1">
+            {instrutores.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">Nenhum instrutor cadastrado ainda.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {instrutores.map((i) => (
+                  <li key={i.id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground">
+                        {[i.patente, i.nome].filter(Boolean).join(" ")}
+                      </p>
+                      {i.especialidade ? (
+                        <p className="text-xs text-muted-foreground">{i.especialidade}</p>
+                      ) : null}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => removerInstrutor(i.id)}
+                    >
+                      <Trash2 className="size-4" />
+                      <span className="sr-only">Remover instrutor</span>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -334,11 +435,17 @@ function CamposCurso({
   curso,
   previewImg,
   setPreviewImg,
+  instrutores,
 }: {
   curso?: CursoComVagas | null
   previewImg: string | null
   setPreviewImg: (v: string | null) => void
+  instrutores: Instrutor[]
 }) {
+  const nomeInstrutor = (i: Instrutor) => [i.patente, i.nome].filter(Boolean).join(" ")
+  // Mantém o valor atual (pode ser um instrutor antigo, texto livre) como opção selecionável.
+  const atual = curso?.instrutor ?? ""
+  const existeAtual = instrutores.some((i) => nomeInstrutor(i) === atual)
   return (
     <div className="space-y-4 py-4">
       <div className="space-y-2">
@@ -382,7 +489,26 @@ function CamposCurso({
         </div>
         <div className="space-y-2">
           <Label htmlFor="c-instrutor">Instrutor</Label>
-          <Input id="c-instrutor" name="instrutor" defaultValue={curso?.instrutor ?? ""} placeholder="ex.: CT (RM2) Silva" />
+          <select
+            id="c-instrutor"
+            name="instrutor"
+            defaultValue={atual}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">Selecione um instrutor</option>
+            {instrutores.map((i) => (
+              <option key={i.id} value={nomeInstrutor(i)}>
+                {nomeInstrutor(i)}
+                {i.especialidade ? ` — ${i.especialidade}` : ""}
+              </option>
+            ))}
+            {atual && !existeAtual ? <option value={atual}>{atual}</option> : null}
+          </select>
+          {instrutores.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Nenhum instrutor cadastrado. Use o botão &quot;Instrutores&quot; para adicionar.
+            </p>
+          ) : null}
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
