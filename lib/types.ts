@@ -172,7 +172,7 @@ export type AbaWebhook =
   | "assinantes"
   | "ouvidoria"
   | "cir"
-  | "carteira_militar"
+  | "carteira_nautica"
 
 export type DestinoNoticia = "portal" | "diario_naval" | "ambos"
 
@@ -209,13 +209,13 @@ export const WEBHOOK_ABAS: { valor: AbaWebhook; label: string; descricao: string
   { valor: "assinantes", label: "Assinantes", descricao: "Disparado quando um cidadão se cadastra para receber notícias." },
   { valor: "ouvidoria", label: "Ouvidoria", descricao: "Disparado a cada nova manifestação registrada na Ouvidoria." },
   { valor: "cir", label: "Aquaviários — CIR", descricao: "Disparado ao emitir uma Caderneta de Inscrição e Registro (CIR)." },
-  { valor: "carteira_militar", label: "Aquaviários — Carteira Militar", descricao: "Disparado ao emitir uma Carteira de Identidade Militar." },
+  { valor: "carteira_nautica", label: "Aquaviários — Carteira Náutica", descricao: "Disparado ao emitir uma Carteira Náutica de Embarcação." },
 ]
 
 // Tipos de documento emitidos na área de Aquaviários.
-export type TipoDocAquaviario = "cir" | "carteira_militar"
+export type TipoDocAquaviario = "cir" | "carteira_nautica"
 
 export const DOC_AQUAVIARIO_LABEL: Record<TipoDocAquaviario, string> = {
   cir: "Caderneta de Inscrição e Registro (CIR)",
-  carteira_militar: "Carteira de Identidade Militar",
+  carteira_nautica: "Carteira Náutica de Embarcação",
 }

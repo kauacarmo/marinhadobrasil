@@ -11,7 +11,6 @@ const navLinks = [
   { href: "/", label: "Início" },
   { href: "/concursos", label: "Concursos" },
   { href: "/noticias", label: "Notícias" },
-  { href: "/aquaviarios", label: "Aquaviários" },
   { href: "/contato", label: "Contato" },
 ]
 

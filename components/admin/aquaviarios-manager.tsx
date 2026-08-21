@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react"
 import Link from "next/link"
 import {
-  IdCard,
+  Ship,
   BookMarked,
   Loader2,
   AtSign,
@@ -41,25 +41,25 @@ const CAMPOS: Record<TipoDocAquaviario, Campo[]> = {
     { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
     { key: "observacoes", label: "Observações", tipo: "textarea", placeholder: "Informações adicionais (opcional)" },
   ],
-  carteira_militar: [
-    { key: "posto", label: "Posto / Graduação", tipo: "text", placeholder: "ex.: Capitão-Tenente (CT)" },
-    { key: "forca", label: "Força", tipo: "text", placeholder: "Marinha do Brasil" },
-    { key: "unidade", label: "Unidade / OM", tipo: "text", placeholder: "ex.: Capitania dos Portos de SP" },
-    { key: "rg_militar", label: "RG Militar", tipo: "text", placeholder: "ex.: 00.000.000-0" },
-    { key: "numero", label: "Nº do documento", tipo: "text", placeholder: "ex.: CIM-000000" },
+  carteira_nautica: [
+    { key: "embarcacao", label: "Nome da embarcação", tipo: "text", placeholder: "ex.: Netuno II" },
+    { key: "tipo_embarcacao", label: "Tipo de embarcação", tipo: "select", options: ["Lancha", "Jet Ski", "Veleiro", "Barco de Pesca", "Iate", "Bote Inflável"] },
+    { key: "categoria", label: "Categoria de habilitação", tipo: "select", options: ["Arrais-Amador", "Mestre-Amador", "Capitão-Amador", "Motonauta", "Veleiro"] },
+    { key: "inscricao", label: "Inscrição da embarcação", tipo: "text", placeholder: "ex.: 1234567890-8" },
+    { key: "numero", label: "Nº da carteira", tipo: "text", placeholder: "ex.: CN-000000" },
     { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
   ],
 }
 
-const TIPOS: { valor: TipoDocAquaviario; label: string; icon: typeof IdCard }[] = [
+const TIPOS: { valor: TipoDocAquaviario; label: string; icon: typeof Ship }[] = [
   { valor: "cir", label: "CIR", icon: BookMarked },
-  { valor: "carteira_militar", label: "Carteira Militar", icon: IdCard },
+  { valor: "carteira_nautica", label: "Carteira Náutica", icon: Ship },
 ]
 
 export function AquaviariosManager({
   webhooks,
 }: {
-  webhooks: { cir: number; carteira_militar: number }
+  webhooks: { cir: number; carteira_nautica: number }
 }) {
   const [tipo, setTipo] = useState<TipoDocAquaviario>("cir")
   const [titular, setTitular] = useState("")
@@ -356,7 +356,7 @@ function DocumentoPreview({
   rodape: string
 }) {
   const preenchidos = campos.filter((c) => (valores[c.key] || "").trim())
-  const corBarra = tipo === "carteira_militar" ? "bg-[#0f5132]" : "bg-[#1e3a5f]"
+  const corBarra = tipo === "carteira_nautica" ? "bg-[#0f5132]" : "bg-[#1e3a5f]"
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">

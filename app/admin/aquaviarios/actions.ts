@@ -4,25 +4,25 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { dispararWebhooks } from "@/lib/webhooks"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
 
-// Conta quantos webhooks ativos existem por aba (cir e carteira_militar).
-export async function contarWebhooksAquaviarios(): Promise<{ cir: number; carteira_militar: number }> {
+// Conta quantos webhooks ativos existem por aba (cir e carteira_nautica).
+export async function contarWebhooksAquaviarios(): Promise<{ cir: number; carteira_nautica: number }> {
   const supabase = createAdminClient()
   const [cir, carteira] = await Promise.all([
     supabase.from("webhooks").select("id", { count: "exact", head: true }).eq("aba", "cir").eq("ativo", true),
     supabase
       .from("webhooks")
       .select("id", { count: "exact", head: true })
-      .eq("aba", "carteira_militar")
+      .eq("aba", "carteira_nautica")
       .eq("ativo", true),
   ])
-  return { cir: cir.count ?? 0, carteira_militar: carteira.count ?? 0 }
+  return { cir: cir.count ?? 0, carteira_nautica: carteira.count ?? 0 }
 }
 
 type CampoEntrada = { label?: string; valor?: string }
 
 export async function emitirDocumentoAquaviario(formData: FormData) {
   const tipo = String(formData.get("tipo") || "") as TipoDocAquaviario
-  if (tipo !== "cir" && tipo !== "carteira_militar") {
+  if (tipo !== "cir" && tipo !== "carteira_nautica") {
     return { error: "Tipo de documento inválido." }
   }
 

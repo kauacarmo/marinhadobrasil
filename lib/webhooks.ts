@@ -14,7 +14,7 @@ export function montarMensagem(evento: string, dados: unknown): string {
   if (dados && typeof dados === "object") {
     const d = dados as Record<string, unknown>
 
-    // Documento de Aquaviário (CIR / Carteira Militar) em texto simples.
+    // Documento de Aquaviário (CIR / Carteira Náutica) em texto simples.
     if (typeof d.documento === "string" && Array.isArray(d.campos)) {
       const linhas: string[] = []
       if (typeof d.mencao === "string" && d.mencao.trim()) linhas.push(d.mencao.trim())
@@ -89,10 +89,10 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
     const rodape = typeof d.rodape === "string" ? d.rodape.trim() : ""
     const mencao = typeof d.mencao === "string" ? d.mencao.trim() : ""
 
-    // ---- Aquaviários: documento oficial (CIR / Carteira Militar) ----
+    // ---- Aquaviários: documento oficial (CIR / Carteira Náutica) ----
     if (typeof d.documento === "string" && Array.isArray(d.campos) && evento !== "teste") {
       const urlPortal = "https://www.marinha.mil.br/"
-      const cor = d.documento === "carteira_militar" ? 0x0f5132 : 0x1e3a5f
+      const cor = d.documento === "carteira_nautica" ? 0x0f5132 : 0x1e3a5f
       const titular = typeof d.titular === "string" ? d.titular.trim() : ""
       const foto = typeof d.foto_url === "string" && /^https?:\/\//i.test(d.foto_url.trim()) ? d.foto_url.trim() : ""
 
