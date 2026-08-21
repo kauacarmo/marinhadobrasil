@@ -58,23 +58,43 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
     const categoria = typeof d.categoria === "string" ? d.categoria.trim() : ""
     const rodape = typeof d.rodape === "string" ? d.rodape.trim() : ""
     const mencao = typeof d.mencao === "string" ? d.mencao.trim() : ""
-    const imagem =
-      typeof d.imagem_url === "string" && /^https?:\/\//i.test(d.imagem_url.trim()) ? d.imagem_url.trim() : ""
+
+    // Coleta as imagens: aceita uma lista (galeria) ou a imagem única (compatibilidade).
+    const listaImagens = Array.isArray(d.imagens) ? (d.imagens as unknown[]) : []
+    const imagens = [
+      ...listaImagens.map((x) => (typeof x === "string" ? x.trim() : "")),
+      typeof d.imagem_url === "string" ? d.imagem_url.trim() : "",
+    ]
+      .filter((u) => /^https?:\/\//i.test(u))
+      // Remove duplicatas e limita à galeria de 4 imagens exibida pelo Discord.
+      .filter((u, i, arr) => arr.indexOf(u) === i)
+      .slice(0, 4)
 
     // Disparo de teste ou publicação sem título: mensagem simples de texto.
     if (evento === "teste" || !titulo) {
       return JSON.stringify({ content: mensagem })
     }
 
-    // Monta um embed rico: título → descrição → imagem (abaixo da descrição) → rodapé (abaixo da imagem).
-    const descricao = [categoria ? `Categoria: ${categoria}` : "", resumo].filter(Boolean).join("\n\n")
-    const embed: Record<string, unknown> = { title: titulo, color: 0x1e3a5f }
-    if (descricao) embed.description = descricao
-    if (imagem) embed.image = { url: imagem }
-    if (rodape) embed.footer = { text: rodape }
+    // Monta um embed rico: título → descrição → imagem → rodapé. (Categoria não entra no resultado final.)
+    const embedPrincipal: Record<string, unknown> = { title: titulo, color: 0x1e3a5f }
+    if (resumo) embedPrincipal.description = resumo
+    if (rodape) embedPrincipal.footer = { text: rodape }
+
+    let embeds: Record<string, unknown>[]
+    if (imagens.length <= 1) {
+      if (imagens[0]) embedPrincipal.image = { url: imagens[0] }
+      embeds = [embedPrincipal]
+    } else {
+      // Galeria: vários embeds com a MESMA url fazem o Discord agrupar as imagens em grade.
+      const urlGaleria = "https://www.marinha.mil.br/"
+      embedPrincipal.url = urlGaleria
+      embedPrincipal.image = { url: imagens[0] }
+      const extras = imagens.slice(1).map((u) => ({ url: urlGaleria, image: { url: u } }))
+      embeds = [embedPrincipal, ...extras]
+    }
 
     // A menção fica no content para que o Discord notifique de fato os membros.
-    return JSON.stringify({ content: mencao || undefined, embeds: [embed] })
+    return JSON.stringify({ content: mencao || undefined, embeds })
   }
 
   return JSON.stringify({ aba, evento, dados, mensagem, content: mensagem, text: mensagem, enviado_em })
