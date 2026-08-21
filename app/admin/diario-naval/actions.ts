@@ -13,28 +13,46 @@ export async function contarWebhooksDiarioNaval(): Promise<number> {
   return count ?? 0
 }
 
-export async function publicarDiarioNaval(formData: FormData) {
-  const titulo = String(formData.get("titulo") || "").trim()
-  const resumo = String(formData.get("resumo") || "").trim()
-  const rodape = String(formData.get("rodape") || "").trim() || null
-  const mencao = String(formData.get("mencao") || "").trim() || null
+type BlocoEntrada = { tipo?: string; texto?: string; url?: string }
+type NoticiaEntrada = { titulo?: string; mencao?: string; rodape?: string; blocos?: BlocoEntrada[] }
 
-  // Lista de imagens (galeria) enviada como JSON pelo formulário; máximo de 5.
-  let imagens: string[] = []
+// Limites alinhados ao Discord (até 10 embeds por mensagem = manchete + 9 blocos).
+const MAX_BLOCOS = 9
+const MAX_NOTICIAS = 10
+
+export async function publicarDiarioNaval(formData: FormData) {
+  let entradas: NoticiaEntrada[] = []
   try {
-    const bruto = JSON.parse(String(formData.get("imagens") || "[]"))
-    if (Array.isArray(bruto)) {
-      imagens = bruto
-        .filter((u): u is string => typeof u === "string" && /^https?:\/\//i.test(u.trim()))
-        .map((u) => u.trim())
-        .slice(0, 5)
-    }
+    const bruto = JSON.parse(String(formData.get("noticias") || "[]"))
+    if (Array.isArray(bruto)) entradas = bruto as NoticiaEntrada[]
   } catch {
-    imagens = []
+    entradas = []
   }
 
-  if (!titulo) return { error: "Informe o título da publicação." }
-  if (!resumo) return { error: "Informe a descrição da publicação." }
+  // Sanitiza cada notícia e seus blocos, preservando a ordem definida no editor.
+  const noticias = entradas
+    .map((n) => {
+      const blocos = (Array.isArray(n?.blocos) ? n.blocos : [])
+        .map((b) =>
+          b?.tipo === "imagem"
+            ? { tipo: "imagem" as const, url: String(b.url || "").trim() }
+            : { tipo: "texto" as const, texto: String(b.texto || "").trim() },
+        )
+        .filter((b) => (b.tipo === "imagem" ? /^https?:\/\//i.test(b.url) : b.texto.length > 0))
+        .slice(0, MAX_BLOCOS)
+      return {
+        titulo: String(n?.titulo || "").trim(),
+        mencao: String(n?.mencao || "").trim() || null,
+        rodape: String(n?.rodape || "").trim() || null,
+        blocos,
+      }
+    })
+    .filter((n) => n.titulo && n.blocos.length > 0)
+    .slice(0, MAX_NOTICIAS)
+
+  if (noticias.length === 0) {
+    return { error: "Adicione ao menos uma notícia com manchete e pelo menos um bloco de conteúdo." }
+  }
 
   const ativos = await contarWebhooksDiarioNaval()
   if (ativos === 0) {
@@ -44,16 +62,16 @@ export async function publicarDiarioNaval(formData: FormData) {
     }
   }
 
-  // Publica exclusivamente no canal Diário Naval, via webhook. Não grava no portal.
-  await dispararWebhooks("diario_naval", "publicada", {
-    titulo,
-    resumo,
-    data: new Date().toISOString().slice(0, 10),
-    imagens,
-    imagem_url: imagens[0] ?? null,
-    rodape,
-    mencao,
-  })
+  // Cada notícia vira uma mensagem separada no canal, na ordem em que foi montada.
+  for (const n of noticias) {
+    await dispararWebhooks("diario_naval", "publicada", {
+      titulo: n.titulo,
+      mencao: n.mencao,
+      rodape: n.rodape,
+      blocos: n.blocos,
+      data: new Date().toISOString().slice(0, 10),
+    })
+  }
 
-  return { success: true }
+  return { success: true, total: noticias.length }
 }

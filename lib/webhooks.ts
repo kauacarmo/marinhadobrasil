@@ -13,6 +13,20 @@ export function montarMensagem(evento: string, dados: unknown): string {
 
   if (dados && typeof dados === "object") {
     const d = dados as Record<string, unknown>
+
+    // Diário Naval no formato de matéria (blocos alternados de texto e imagem).
+    if (Array.isArray(d.blocos)) {
+      const linhas: string[] = []
+      if (typeof d.mencao === "string" && d.mencao.trim()) linhas.push(d.mencao.trim())
+      if (typeof d.titulo === "string" && d.titulo.trim()) linhas.push(`📰 **${d.titulo.trim()}**`)
+      for (const b of d.blocos as Array<Record<string, unknown>>) {
+        if (b?.tipo === "texto" && typeof b.texto === "string" && b.texto.trim()) linhas.push(b.texto.trim())
+        else if (b?.tipo === "imagem" && typeof b.url === "string" && b.url.trim()) linhas.push(b.url.trim())
+      }
+      if (typeof d.rodape === "string" && d.rodape.trim()) linhas.push(`_${d.rodape.trim()}_`)
+      return linhas.join("\n")
+    }
+
     if (typeof d.titulo === "string" && d.titulo.trim()) {
       const linhas: string[] = []
       if (typeof d.mencao === "string" && d.mencao.trim()) linhas.push(String(d.mencao).trim())
@@ -58,6 +72,55 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
     const categoria = typeof d.categoria === "string" ? d.categoria.trim() : ""
     const rodape = typeof d.rodape === "string" ? d.rodape.trim() : ""
     const mencao = typeof d.mencao === "string" ? d.mencao.trim() : ""
+
+    // ---- Diário Naval: matéria com blocos alternados (texto/imagem) ----
+    if (Array.isArray(d.blocos) && evento !== "teste") {
+      const urlPortal = "https://www.marinha.mil.br/"
+      const cor = 0x1e3a5f
+
+      // Normaliza e valida os blocos, preservando a ordem definida no editor.
+      const blocos = (d.blocos as Array<Record<string, unknown>>)
+        .map((b) =>
+          b?.tipo === "imagem"
+            ? { tipo: "imagem" as const, url: typeof b.url === "string" ? b.url.trim() : "" }
+            : { tipo: "texto" as const, texto: typeof b.texto === "string" ? b.texto.trim() : "" },
+        )
+        .filter((b) => (b.tipo === "imagem" ? /^https?:\/\//i.test(b.url) : b.texto.length > 0))
+
+      const embeds: Record<string, unknown>[] = []
+      // Cabeçalho do veículo + manchete. Se o 1º bloco for texto, ele entra como lide da matéria.
+      const header: Record<string, unknown> = {
+        author: { name: "Diário Naval — Marinha do Brasil", url: urlPortal },
+        title: titulo || "Diário Naval",
+        url: urlPortal,
+        color: cor,
+      }
+      let inicio = 0
+      if (blocos[0]?.tipo === "texto") {
+        header.description = (blocos[0] as { texto: string }).texto
+        inicio = 1
+      }
+      embeds.push(header)
+
+      for (let i = inicio; i < blocos.length; i++) {
+        const b = blocos[i]
+        if (b.tipo === "texto") embeds.push({ description: b.texto, color: cor })
+        else embeds.push({ image: { url: b.url }, color: cor })
+      }
+
+      // Discord aceita no máximo 10 embeds por mensagem.
+      const finais = embeds.slice(0, 10)
+      // Rodapé/data ficam no último embed, como a assinatura da matéria.
+      const ultimo = finais[finais.length - 1]
+      finais[finais.length - 1] = {
+        ...ultimo,
+        footer: { text: rodape || "Diário Naval • Marinha do Brasil" },
+        timestamp: new Date().toISOString(),
+      }
+
+      return JSON.stringify({ content: mencao || undefined, embeds: finais })
+    }
+    // ---- fim Diário Naval ----
 
     // Coleta as imagens: aceita uma lista (galeria) ou a imagem única (compatibilidade).
     const listaImagens = Array.isArray(d.imagens) ? (d.imagens as unknown[]) : []
