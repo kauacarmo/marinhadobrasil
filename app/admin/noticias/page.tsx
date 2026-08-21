@@ -11,7 +11,7 @@ export default async function AdminNoticiasPage() {
     <>
       <AdminTopbar
         titulo="Notícias e Comunicados"
-        descricao="Publique no portal do site, no canal Diário Naval ou em ambos."
+        descricao="Publique notícias e comunicados no portal do site."
       />
       <div className="p-6">
         <NoticiasManager noticias={noticias} />

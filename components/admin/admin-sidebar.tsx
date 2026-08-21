@@ -9,6 +9,7 @@ import {
   Users,
   UserCog,
   Newspaper,
+  Radio,
   ScrollText,
   BookText,
   Gavel,
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
   { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
+  { href: "/admin/diario-naval", label: "Diário Naval", icon: Radio },
   { href: "/admin/portarias", label: "Portarias", icon: ScrollText },
   { href: "/admin/boletim", label: "Boletim Interno", icon: BookText },
   { href: "/admin/disciplinar", label: "Disciplinar", icon: Gavel },
@@ -34,7 +36,7 @@ const navItems = [
 ]
 
 // Guias visíveis para cargos com acesso restrito (ex.: Publicitário)
-const guiasRestritas = ["/admin", "/admin/noticias"]
+const guiasRestritas = ["/admin", "/admin/noticias", "/admin/diario-naval"]
 
 export function AdminSidebar({ papel = "" }: { papel?: string }) {
   const pathname = usePathname()
