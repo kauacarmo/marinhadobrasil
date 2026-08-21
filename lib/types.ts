@@ -1,5 +1,34 @@
 export type ContestStatus = "fechado" | "inscricoes_abertas" | "em_andamento" | "previsto"
 
+export type Curso = {
+  id: string
+  titulo: string
+  descricao: string | null
+  carga_horaria: string | null
+  instrutor: string | null
+  modalidade: string | null
+  local: string | null
+  vagas: number
+  inscricoes_inicio: string | null
+  inscricoes_fim: string | null
+  image_url: string | null
+  publicado: boolean
+  created_at: string
+}
+
+export type CursoComVagas = Curso & { inscritos: number }
+
+export type CursoInscricao = {
+  id: string
+  curso_id: string
+  candidato_conta_id: string
+  id_jogo: string
+  nome: string
+  nome_personagem: string | null
+  observacoes: string | null
+  created_at: string
+}
+
 export type Contest = {
   id: string
   titulo: string
