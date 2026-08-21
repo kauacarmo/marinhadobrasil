@@ -11,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { BarChart3, Search, Trophy, Users, Award, Medal, Loader2, CheckCircle2, XCircle } from "lucide-react"
+import { BarChart3, Search, Trophy, Users, Award, Medal, Loader2, CheckCircle2, XCircle, Ban } from "lucide-react"
 import { getDesempenhoConcurso, type DesempenhoConcurso } from "@/app/admin/publicacoes/actions"
 
 type ConcursoResumo = { id: string; titulo: string; cargo: string; realizaram: number }
@@ -59,7 +59,10 @@ export function ResultadosDesempenho({ concursos }: { concursos: ConcursoResumo[
   }, [dados, busca, filtro])
 
   // As 3 melhores notas para o bloco de sugestão
-  const melhores = useMemo(() => (dados ? dados.candidatos.slice(0, 3) : []), [dados])
+  const melhores = useMemo(
+    () => (dados ? dados.candidatos.filter((c) => !c.desclassificado).slice(0, 3) : []),
+    [dados],
+  )
 
   return (
     <section className="rounded-lg border border-border bg-card">
@@ -196,17 +199,32 @@ export function ResultadosDesempenho({ concursos }: { concursos: ConcursoResumo[
                   </thead>
                   <tbody className="divide-y divide-border">
                     {listaFiltrada.map((c) => (
-                      <tr key={c.id} className="hover:bg-muted/30">
-                        <td className="px-3 py-2.5 text-center font-medium text-muted-foreground">{c.posicao}</td>
-                        <td className="px-3 py-2.5 font-medium text-foreground">{c.nome}</td>
+                      <tr key={c.id} className={c.desclassificado ? "bg-destructive/5" : "hover:bg-muted/30"}>
+                        <td className="px-3 py-2.5 text-center font-medium text-muted-foreground">
+                          {c.desclassificado ? "—" : c.posicao}
+                        </td>
+                        <td className="px-3 py-2.5 font-medium text-foreground">
+                          {c.nome}
+                          {c.desclassificado && c.motivoDesclassificacao ? (
+                            <span className="mt-0.5 block text-xs font-normal text-destructive">
+                              {c.motivoDesclassificacao}
+                            </span>
+                          ) : null}
+                        </td>
                         <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground">{c.numero_inscricao}</td>
                         <td className="px-3 py-2.5 text-center text-foreground">
-                          {c.acertos}/{c.total}
+                          {c.desclassificado ? "—" : `${c.acertos}/${c.total}`}
                         </td>
-                        <td className="px-3 py-2.5 text-center font-semibold text-foreground">{c.percentual}%</td>
+                        <td className="px-3 py-2.5 text-center font-semibold text-foreground">
+                          {c.desclassificado ? "—" : `${c.percentual}%`}
+                        </td>
                         <td className="px-3 py-2.5 text-xs text-muted-foreground">{formatDataHora(c.finalizadaEm)}</td>
                         <td className="px-3 py-2.5 text-right">
-                          {c.aprovado ? (
+                          {c.desclassificado ? (
+                            <Badge className="bg-destructive text-destructive-foreground hover:bg-destructive">
+                              <Ban className="mr-1 size-3.5" /> Desclassificado (cola)
+                            </Badge>
+                          ) : c.aprovado ? (
                             <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
                               <CheckCircle2 className="mr-1 size-3.5" /> Aprovado
                             </Badge>

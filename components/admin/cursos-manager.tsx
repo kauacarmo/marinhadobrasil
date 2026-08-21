@@ -93,9 +93,11 @@ const POSTOS_MARINHA: { grupo: string; itens: string[] }[] = [
 export function CursosManager({
   cursos,
   instrutores,
+  podeGerenciarInstrutores = false,
 }: {
   cursos: CursoComVagas[]
   instrutores: Instrutor[]
+  podeGerenciarInstrutores?: boolean
 }) {
   const [isPending, startTransition] = useTransition()
   const [msg, setMsg] = useState<string | null>(null)
@@ -200,12 +202,14 @@ export function CursosManager({
       ) : null}
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" onClick={() => setOpenInstrutores(true)}>
-          <UserCog className="size-4" /> Instrutores
-          <Badge variant="secondary" className="ml-1">
-            {instrutores.length}
-          </Badge>
-        </Button>
+        {podeGerenciarInstrutores ? (
+          <Button variant="outline" onClick={() => setOpenInstrutores(true)}>
+            <UserCog className="size-4" /> Instrutores
+            <Badge variant="secondary" className="ml-1">
+              {instrutores.length}
+            </Badge>
+          </Button>
+        ) : null}
         <Button onClick={() => setOpenNovo(true)}>
           <Plus className="size-4" /> Novo curso
         </Button>
