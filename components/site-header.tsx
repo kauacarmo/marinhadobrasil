@@ -24,7 +24,7 @@ export function SiteHeader() {
       {/* Faixa superior governamental */}
       <div className="bg-primary text-primary-foreground">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-1.5 text-xs">
-          <span className="hidden sm:inline">Marinha do Brasil • Comando do 8º Distrito Naval</span>
+          <span className="hidden sm:inline">Marinha do Brasil • Comando do 1º Distrito Naval</span>
           <div className="flex items-center gap-4">
             <Link href="/acessibilidade" className="hover:text-accent">
               Acessibilidade
