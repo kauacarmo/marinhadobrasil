@@ -48,6 +48,48 @@ function fmtData(iso?: string | null) {
   return `${d}/${m}/${a}`
 }
 
+// Hierarquia de postos e graduações da Marinha do Brasil, agrupada por círculo.
+const POSTOS_MARINHA: { grupo: string; itens: string[] }[] = [
+  {
+    grupo: "Oficiais-Generais",
+    itens: [
+      "Almirante (Alte)",
+      "Almirante de Esquadra (Alte Esq)",
+      "Vice-Almirante (V Alte)",
+      "Contra-Almirante (C Alte)",
+    ],
+  },
+  {
+    grupo: "Oficiais Superiores",
+    itens: [
+      "Capitão de Mar e Guerra (CMG)",
+      "Capitão de Fragata (CF)",
+      "Capitão de Corveta (CC)",
+    ],
+  },
+  {
+    grupo: "Oficiais Intermediários",
+    itens: ["Capitão-Tenente (CT)"],
+  },
+  {
+    grupo: "Oficiais Subalternos",
+    itens: ["Primeiro-Tenente (1T)", "Segundo-Tenente (2T)", "Guarda-Marinha (GM)"],
+  },
+  {
+    grupo: "Suboficiais e Sargentos",
+    itens: [
+      "Suboficial (SO)",
+      "Primeiro-Sargento (1SG)",
+      "Segundo-Sargento (2SG)",
+      "Terceiro-Sargento (3SG)",
+    ],
+  },
+  {
+    grupo: "Cabos e Marinheiros",
+    itens: ["Cabo (CB)", "Marinheiro (MN)", "Soldado Fuzileiro Naval (SD-FN)"],
+  },
+]
+
 export function CursosManager({
   cursos,
   instrutores,
@@ -378,7 +420,23 @@ export function CursosManager({
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="i-patente">Patente / Posto</Label>
-                <Input id="i-patente" name="patente" placeholder="ex.: CT (RM2)" />
+                <select
+                  id="i-patente"
+                  name="patente"
+                  defaultValue=""
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Selecione o posto/graduação</option>
+                  {POSTOS_MARINHA.map((g) => (
+                    <optgroup key={g.grupo} label={g.grupo}>
+                      {g.itens.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="i-especialidade">Especialidade</Label>
