@@ -53,11 +53,28 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
 
   if (ehDiscord && !ehDiscordGithub) {
     const d = (dados && typeof dados === "object" ? dados : {}) as Record<string, unknown>
-    const corpo: Record<string, unknown> = { content: mensagem }
-    if (evento !== "teste" && typeof d.imagem_url === "string" && /^https?:\/\//i.test(d.imagem_url)) {
-      corpo.embeds = [{ image: { url: d.imagem_url } }]
+    const titulo = typeof d.titulo === "string" ? d.titulo.trim() : ""
+    const resumo = typeof d.resumo === "string" ? d.resumo.trim() : ""
+    const categoria = typeof d.categoria === "string" ? d.categoria.trim() : ""
+    const rodape = typeof d.rodape === "string" ? d.rodape.trim() : ""
+    const mencao = typeof d.mencao === "string" ? d.mencao.trim() : ""
+    const imagem =
+      typeof d.imagem_url === "string" && /^https?:\/\//i.test(d.imagem_url.trim()) ? d.imagem_url.trim() : ""
+
+    // Disparo de teste ou publicação sem título: mensagem simples de texto.
+    if (evento === "teste" || !titulo) {
+      return JSON.stringify({ content: mensagem })
     }
-    return JSON.stringify(corpo)
+
+    // Monta um embed rico: título → descrição → imagem (abaixo da descrição) → rodapé (abaixo da imagem).
+    const descricao = [categoria ? `Categoria: ${categoria}` : "", resumo].filter(Boolean).join("\n\n")
+    const embed: Record<string, unknown> = { title: titulo, color: 0x1e3a5f }
+    if (descricao) embed.description = descricao
+    if (imagem) embed.image = { url: imagem }
+    if (rodape) embed.footer = { text: rodape }
+
+    // A menção fica no content para que o Discord notifique de fato os membros.
+    return JSON.stringify({ content: mencao || undefined, embeds: [embed] })
   }
 
   return JSON.stringify({ aba, evento, dados, mensagem, content: mensagem, text: mensagem, enviado_em })
