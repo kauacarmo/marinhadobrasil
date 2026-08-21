@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { getSessao } from "@/lib/session"
+import { ehAlmirantado } from "@/lib/cargos-marinha"
 import type { Curso, CursoComVagas, CursoInscricao, Instrutor } from "@/lib/types"
 
 export async function listInstrutores(): Promise<Instrutor[]> {
@@ -11,6 +13,11 @@ export async function listInstrutores(): Promise<Instrutor[]> {
 }
 
 export async function criarInstrutor(formData: FormData) {
+  const sessao = await getSessao()
+  if (!ehAlmirantado(sessao?.papel)) {
+    return { error: "Apenas o almirantado e o administrador podem gerenciar instrutores." }
+  }
+
   const nome = String(formData.get("nome") || "").trim()
   const patente = String(formData.get("patente") || "").trim() || null
   const especialidade = String(formData.get("especialidade") || "").trim() || null
@@ -25,6 +32,11 @@ export async function criarInstrutor(formData: FormData) {
 }
 
 export async function apagarInstrutor(id: string) {
+  const sessao = await getSessao()
+  if (!ehAlmirantado(sessao?.papel)) {
+    return { error: "Apenas o almirantado e o administrador podem gerenciar instrutores." }
+  }
+
   const supabase = createAdminClient()
   const { error } = await supabase.from("instrutores").delete().eq("id", id)
   if (error) return { error: error.message }
