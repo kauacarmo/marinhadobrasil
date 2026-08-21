@@ -114,7 +114,8 @@ export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
               Publicar no Diário Naval
             </CardTitle>
             <CardDescription>
-              A publicação é enviada como embed ao canal Diário Naval via webhook e não aparece no portal do site.
+              A publicação é enviada ao canal Diário Naval no formato de portal de notícias (manchete, matéria e
+              foto), via webhook, e não aparece no portal do site.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -310,19 +311,28 @@ function EmbedPreview({
             </p>
           ) : null}
 
-          {/* Cartão do embed com a barra colorida à esquerda (cor naval 0x1e3a5f) */}
+          {/* Cartão do embed no formato de portal de notícias (barra naval à esquerda) */}
           <div className="mt-2 overflow-hidden rounded-[4px] border-l-4 border-[#1e3a5f] bg-[#2b2d31]">
             <div className="space-y-2 p-3">
+              {/* Cabeçalho do veículo (author) */}
+              <div className="flex items-center gap-2">
+                <span className="inline-flex size-4 items-center justify-center rounded-full bg-[#1e3a5f] text-[8px] font-bold text-white">
+                  MB
+                </span>
+                <span className="text-xs font-semibold text-[#dbdee1]">Diário Naval — Marinha do Brasil</span>
+              </div>
+
+              {/* Manchete clicável */}
               {titulo.trim() ? (
-                <p className="font-semibold leading-snug text-white">{titulo.trim()}</p>
+                <p className="text-base font-bold leading-snug text-[#00a8fc]">{titulo.trim()}</p>
               ) : (
-                <p className="font-semibold leading-snug text-[#6d7178]">Título da publicação</p>
+                <p className="text-base font-bold leading-snug text-[#6d7178]">Manchete da publicação</p>
               )}
 
               {resumo.trim() ? (
                 <p className="whitespace-pre-line text-sm leading-relaxed text-[#dbdee1]">{resumo.trim()}</p>
               ) : (
-                <p className="text-sm leading-relaxed text-[#6d7178]">A descrição aparecerá aqui.</p>
+                <p className="text-sm leading-relaxed text-[#6d7178]">O texto da matéria aparecerá aqui.</p>
               )}
 
               {galeria.length === 1 ? (
@@ -344,9 +354,10 @@ function EmbedPreview({
                 </div>
               ) : null}
 
-              {rodape.trim() ? (
-                <div className="flex items-center gap-1 pt-1 text-xs text-[#949ba4]">{rodape.trim()}</div>
-              ) : null}
+              {/* Rodapé com edição/data, como em um portal de notícias */}
+              <div className="flex items-center gap-1 pt-1 text-xs text-[#949ba4]">
+                {(rodape.trim() || "Diário Naval • Marinha do Brasil") + " • hoje"}
+              </div>
             </div>
           </div>
 

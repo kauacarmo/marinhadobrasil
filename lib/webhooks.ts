@@ -75,10 +75,19 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
       return JSON.stringify({ content: mensagem })
     }
 
-    // Monta um embed rico: título → descrição → imagem → rodapé. (Categoria não entra no resultado final.)
-    const embedPrincipal: Record<string, unknown> = { title: titulo, color: 0x1e3a5f }
+    // Formato de PORTAL DE NOTÍCIAS (não um aviso seco):
+    // cabeçalho do veículo (author) → manchete clicável (title) → matéria (description)
+    // → foto principal (image) → rodapé com edição/data (footer + timestamp).
+    const urlPortal = "https://www.marinha.mil.br/"
+    const embedPrincipal: Record<string, unknown> = {
+      author: { name: "Diário Naval — Marinha do Brasil", url: urlPortal },
+      title: titulo,
+      url: urlPortal,
+      color: 0x1e3a5f,
+      footer: { text: rodape || "Diário Naval • Marinha do Brasil" },
+      timestamp: new Date().toISOString(),
+    }
     if (resumo) embedPrincipal.description = resumo
-    if (rodape) embedPrincipal.footer = { text: rodape }
 
     let embeds: Record<string, unknown>[]
     if (imagens.length <= 1) {
@@ -86,10 +95,8 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
       embeds = [embedPrincipal]
     } else {
       // Galeria: vários embeds com a MESMA url fazem o Discord agrupar as imagens em grade.
-      const urlGaleria = "https://www.marinha.mil.br/"
-      embedPrincipal.url = urlGaleria
       embedPrincipal.image = { url: imagens[0] }
-      const extras = imagens.slice(1).map((u) => ({ url: urlGaleria, image: { url: u } }))
+      const extras = imagens.slice(1).map((u) => ({ url: urlPortal, image: { url: u } }))
       embeds = [embedPrincipal, ...extras]
     }
 
