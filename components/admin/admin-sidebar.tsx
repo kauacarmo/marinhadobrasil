@@ -15,6 +15,7 @@ import {
   BookText,
   Gavel,
   ClipboardList,
+  Anchor,
   Settings,
   LogOut,
 } from "lucide-react"
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/admin/publicacoes", label: "Resultados e Editais", icon: ClipboardList },
   { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
+  { href: "/admin/aquaviarios", label: "Aquaviários", icon: Anchor },
   { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
   { href: "/admin/diario-naval", label: "Diário Naval", icon: Radio },
   { href: "/admin/portarias", label: "Portarias", icon: ScrollText },
