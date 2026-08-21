@@ -6,6 +6,7 @@ import { sair } from "@/app/login/actions"
 import {
   LayoutDashboard,
   FileText,
+  GraduationCap,
   Users,
   UserCog,
   Newspaper,
@@ -24,6 +25,7 @@ import { cargosRestritos } from "@/lib/cargos-marinha"
 const navItems = [
   { href: "/admin", label: "Painel", icon: LayoutDashboard },
   { href: "/admin/concursos", label: "Concursos", icon: FileText },
+  { href: "/admin/cursos", label: "Cursos", icon: GraduationCap },
   { href: "/admin/publicacoes", label: "Resultados e Editais", icon: ClipboardList },
   { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
