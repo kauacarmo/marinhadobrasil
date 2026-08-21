@@ -14,6 +14,22 @@ export function montarMensagem(evento: string, dados: unknown): string {
   if (dados && typeof dados === "object") {
     const d = dados as Record<string, unknown>
 
+    // Documento de Aquaviário (CIR / Carteira Militar) em texto simples.
+    if (typeof d.documento === "string" && Array.isArray(d.campos)) {
+      const linhas: string[] = []
+      if (typeof d.mencao === "string" && d.mencao.trim()) linhas.push(d.mencao.trim())
+      if (typeof d.titulo === "string" && d.titulo.trim()) linhas.push(`📄 **${d.titulo.trim()}**`)
+      if (typeof d.titular === "string" && d.titular.trim()) linhas.push(`Titular: ${d.titular.trim()}`)
+      for (const c of d.campos as Array<Record<string, unknown>>) {
+        const label = typeof c?.label === "string" ? c.label.trim() : ""
+        const valor = typeof c?.valor === "string" ? c.valor.trim() : ""
+        if (label && valor) linhas.push(`${label}: ${valor}`)
+      }
+      if (typeof d.foto_url === "string" && d.foto_url.trim()) linhas.push(d.foto_url.trim())
+      if (typeof d.rodape === "string" && d.rodape.trim()) linhas.push(`_${d.rodape.trim()}_`)
+      return linhas.join("\n")
+    }
+
     // Diário Naval no formato de matéria (blocos alternados de texto e imagem).
     if (Array.isArray(d.blocos)) {
       const linhas: string[] = []
@@ -72,6 +88,38 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
     const categoria = typeof d.categoria === "string" ? d.categoria.trim() : ""
     const rodape = typeof d.rodape === "string" ? d.rodape.trim() : ""
     const mencao = typeof d.mencao === "string" ? d.mencao.trim() : ""
+
+    // ---- Aquaviários: documento oficial (CIR / Carteira Militar) ----
+    if (typeof d.documento === "string" && Array.isArray(d.campos) && evento !== "teste") {
+      const urlPortal = "https://www.marinha.mil.br/"
+      const cor = d.documento === "carteira_militar" ? 0x0f5132 : 0x1e3a5f
+      const titular = typeof d.titular === "string" ? d.titular.trim() : ""
+      const foto = typeof d.foto_url === "string" && /^https?:\/\//i.test(d.foto_url.trim()) ? d.foto_url.trim() : ""
+
+      const fields = (d.campos as Array<Record<string, unknown>>)
+        .map((c) => ({
+          name: typeof c?.label === "string" ? c.label.trim() : "",
+          value: typeof c?.valor === "string" ? c.valor.trim() : "",
+          inline: true,
+        }))
+        .filter((f) => f.name && f.value)
+        .slice(0, 24)
+
+      const embed: Record<string, unknown> = {
+        author: { name: "Marinha do Brasil — Capitania dos Portos", url: urlPortal },
+        title: titulo || "Documento oficial",
+        url: urlPortal,
+        color: cor,
+        fields,
+        footer: { text: rodape || "Documento emitido pela Capitania dos Portos" },
+        timestamp: new Date().toISOString(),
+      }
+      if (titular) embed.description = `**Titular:** ${titular}`
+      if (foto) embed.thumbnail = { url: foto }
+
+      return JSON.stringify({ content: mencao || undefined, embeds: [embed] })
+    }
+    // ---- fim Aquaviários ----
 
     // ---- Diário Naval: matéria com blocos alternados (texto/imagem) ----
     if (Array.isArray(d.blocos) && evento !== "teste") {
