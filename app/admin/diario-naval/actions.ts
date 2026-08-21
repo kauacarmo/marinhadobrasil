@@ -2,7 +2,6 @@
 
 import { createAdminClient } from "@/lib/supabase/admin"
 import { dispararWebhooks } from "@/lib/webhooks"
-import { CATEGORIAS_NOTICIA } from "@/lib/types"
 
 export async function contarWebhooksDiarioNaval(): Promise<number> {
   const supabase = createAdminClient()
@@ -17,16 +16,25 @@ export async function contarWebhooksDiarioNaval(): Promise<number> {
 export async function publicarDiarioNaval(formData: FormData) {
   const titulo = String(formData.get("titulo") || "").trim()
   const resumo = String(formData.get("resumo") || "").trim()
-  const categoria = String(formData.get("categoria") || "Comunicados").trim()
-  const imagem_url = String(formData.get("imagem_url") || "").trim() || null
   const rodape = String(formData.get("rodape") || "").trim() || null
   const mencao = String(formData.get("mencao") || "").trim() || null
 
+  // Lista de imagens (galeria) enviada como JSON pelo formulário; máximo de 5.
+  let imagens: string[] = []
+  try {
+    const bruto = JSON.parse(String(formData.get("imagens") || "[]"))
+    if (Array.isArray(bruto)) {
+      imagens = bruto
+        .filter((u): u is string => typeof u === "string" && /^https?:\/\//i.test(u.trim()))
+        .map((u) => u.trim())
+        .slice(0, 5)
+    }
+  } catch {
+    imagens = []
+  }
+
   if (!titulo) return { error: "Informe o título da publicação." }
   if (!resumo) return { error: "Informe a descrição da publicação." }
-  if (!CATEGORIAS_NOTICIA.includes(categoria as (typeof CATEGORIAS_NOTICIA)[number])) {
-    return { error: "Selecione uma categoria válida." }
-  }
 
   const ativos = await contarWebhooksDiarioNaval()
   if (ativos === 0) {
@@ -40,9 +48,9 @@ export async function publicarDiarioNaval(formData: FormData) {
   await dispararWebhooks("diario_naval", "publicada", {
     titulo,
     resumo,
-    categoria,
     data: new Date().toISOString().slice(0, 10),
-    imagem_url,
+    imagens,
+    imagem_url: imagens[0] ?? null,
     rodape,
     mencao,
   })

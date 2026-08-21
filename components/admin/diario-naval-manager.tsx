@@ -2,15 +2,15 @@
 
 import { useRef, useState, useTransition } from "react"
 import Link from "next/link"
-import { Radio, ImageIcon, Loader2, X, AtSign, Send, TriangleAlert, CheckCircle2, Eye } from "lucide-react"
+import { Radio, ImageIcon, Loader2, X, AtSign, Send, TriangleAlert, CheckCircle2, Eye, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CATEGORIAS_NOTICIA } from "@/lib/types"
 import { publicarDiarioNaval } from "@/app/admin/diario-naval/actions"
+
+const MAX_IMAGENS = 5
 
 export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
   const [isPending, startTransition] = useTransition()
@@ -21,8 +21,7 @@ export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
   const [resumo, setResumo] = useState<string>("")
   const [mencao, setMencao] = useState<string>("")
   const [rodape, setRodape] = useState<string>("")
-  const [categoria, setCategoria] = useState<string>("Comunicados")
-  const [imagemUrl, setImagemUrl] = useState<string>("")
+  const [imagens, setImagens] = useState<string[]>([])
   const [enviandoImg, setEnviandoImg] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
@@ -38,20 +37,27 @@ export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
     setResumo("")
     setMencao("")
     setRodape("")
-    setCategoria("Comunicados")
-    setImagemUrl("")
+    setImagens([])
   }
 
-  async function enviarImagem(file: File) {
+  async function enviarImagens(files: FileList) {
     setErro(null)
+    const espacoLivre = MAX_IMAGENS - imagens.length
+    if (espacoLivre <= 0) {
+      setErro(`Você pode anexar no máximo ${MAX_IMAGENS} imagens.`)
+      return
+    }
+    const selecionadas = Array.from(files).slice(0, espacoLivre)
     setEnviandoImg(true)
     try {
-      const fd = new FormData()
-      fd.set("file", file)
-      const res = await fetch("/api/noticias/upload", { method: "POST", body: fd })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || "Falha ao enviar a imagem.")
-      setImagemUrl(json.url)
+      for (const file of selecionadas) {
+        const fd = new FormData()
+        fd.set("file", file)
+        const res = await fetch("/api/noticias/upload", { method: "POST", body: fd })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || "Falha ao enviar a imagem.")
+        setImagens((prev) => (prev.length < MAX_IMAGENS ? [...prev, json.url] : prev))
+      }
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha ao enviar a imagem.")
     } finally {
@@ -59,10 +65,13 @@ export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
     }
   }
 
+  function removerImagem(url: string) {
+    setImagens((prev) => prev.filter((u) => u !== url))
+  }
+
   function submitForm(formData: FormData) {
     setErro(null)
-    formData.set("categoria", categoria)
-    formData.set("imagem_url", imagemUrl)
+    formData.set("imagens", JSON.stringify(imagens))
     startTransition(async () => {
       const res = await publicarDiarioNaval(formData)
       if (res?.error) setErro(res.error)
@@ -72,6 +81,8 @@ export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
       }
     })
   }
+
+  const podeAnexarMais = imagens.length < MAX_IMAGENS
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
@@ -131,35 +142,53 @@ export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
                 />
               </div>
 
-              {/* Anexar imagem */}
+              {/* Anexar imagens (galeria de até 5) */}
               <div className="space-y-2">
-                <Label>Imagem</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Imagens</Label>
+                  <span className="text-xs text-muted-foreground">
+                    {imagens.length}/{MAX_IMAGENS}
+                  </span>
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
+                  multiple
                   className="hidden"
                   onChange={(e) => {
-                    const f = e.target.files?.[0]
-                    if (f) enviarImagem(f)
+                    if (e.target.files?.length) enviarImagens(e.target.files)
+                    e.target.value = ""
                   }}
                 />
-                {imagemUrl ? (
-                  <div className="relative overflow-hidden rounded-md border border-border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={imagemUrl || "/placeholder.svg"}
-                      alt="Pré-visualização"
-                      className="h-40 w-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setImagemUrl("")}
-                      className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow hover:bg-background"
-                      aria-label="Remover imagem"
-                    >
-                      <X className="size-4" />
-                    </button>
+
+                {imagens.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {imagens.map((url) => (
+                      <div key={url} className="relative overflow-hidden rounded-md border border-border">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url || "/placeholder.svg"} alt="Pré-visualização" className="h-24 w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removerImagem(url)}
+                          className="absolute right-1 top-1 inline-flex size-6 items-center justify-center rounded-full bg-background/90 text-foreground shadow hover:bg-background"
+                          aria-label="Remover imagem"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    {podeAnexarMais ? (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={enviandoImg}
+                        className="flex h-24 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border bg-muted/30 text-xs text-muted-foreground transition-colors hover:bg-muted/50 disabled:opacity-60"
+                      >
+                        {enviandoImg ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                        {enviandoImg ? "Enviando" : "Adicionar"}
+                      </button>
+                    ) : null}
                   </div>
                 ) : (
                   <button
@@ -176,7 +205,7 @@ export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
                     ) : (
                       <>
                         <ImageIcon className="size-5" />
-                        Clique para anexar uma imagem
+                        Clique para anexar imagens (até {MAX_IMAGENS})
                       </>
                     )}
                   </button>
@@ -197,23 +226,6 @@ export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
                     onChange={(e) => setMencao(e.target.value)}
                   />
                 </div>
-              </div>
-
-              {/* Categoria */}
-              <div className="space-y-2">
-                <Label>Categoria</Label>
-                <Select value={categoria} onValueChange={(v) => setCategoria(v ?? "")}>
-                  <SelectTrigger>
-                    <SelectValue>{categoria}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIAS_NOTICIA.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Rodapé */}
@@ -257,14 +269,7 @@ export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
           <Eye className="size-4" />
           Pré-visualização do embed
         </div>
-        <EmbedPreview
-          titulo={titulo}
-          resumo={resumo}
-          categoria={categoria}
-          mencao={mencao}
-          rodape={rodape}
-          imagemUrl={imagemUrl}
-        />
+        <EmbedPreview titulo={titulo} resumo={resumo} mencao={mencao} rodape={rodape} imagens={imagens} />
       </div>
     </div>
   )
@@ -273,22 +278,19 @@ export function DiarioNavalManager({ temWebhook }: { temWebhook: boolean }) {
 function EmbedPreview({
   titulo,
   resumo,
-  categoria,
   mencao,
   rodape,
-  imagemUrl,
+  imagens,
 }: {
   titulo: string
   resumo: string
-  categoria: string
   mencao: string
   rodape: string
-  imagemUrl: string
+  imagens: string[]
 }) {
-  const temConteudo = titulo.trim() || resumo.trim() || imagemUrl || rodape.trim()
-  const descricao = [categoria.trim() ? `Categoria: ${categoria.trim()}` : "", resumo.trim()]
-    .filter(Boolean)
-    .join("\n\n")
+  const temConteudo = titulo.trim() || resumo.trim() || imagens.length > 0 || rodape.trim()
+  // O Discord exibe até 4 imagens na grade da galeria.
+  const galeria = imagens.slice(0, 4)
 
   return (
     // Fundo escuro fixo para simular o cliente do Discord, independente do tema do painel.
@@ -317,16 +319,28 @@ function EmbedPreview({
                 <p className="font-semibold leading-snug text-[#6d7178]">Título da publicação</p>
               )}
 
-              {descricao ? (
-                <p className="whitespace-pre-line text-sm leading-relaxed text-[#dbdee1]">{descricao}</p>
+              {resumo.trim() ? (
+                <p className="whitespace-pre-line text-sm leading-relaxed text-[#dbdee1]">{resumo.trim()}</p>
               ) : (
                 <p className="text-sm leading-relaxed text-[#6d7178]">A descrição aparecerá aqui.</p>
               )}
 
-              {imagemUrl ? (
+              {galeria.length === 1 ? (
                 <div className="overflow-hidden rounded-[4px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imagemUrl || "/placeholder.svg"} alt="Imagem do embed" className="w-full object-cover" />
+                  <img src={galeria[0] || "/placeholder.svg"} alt="Imagem do embed" className="w-full object-cover" />
+                </div>
+              ) : galeria.length > 1 ? (
+                <div className="grid grid-cols-2 gap-0.5 overflow-hidden rounded-[4px]">
+                  {galeria.map((url, i) => (
+                    <div
+                      key={url}
+                      className={galeria.length === 3 && i === 0 ? "col-span-2" : undefined}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url || "/placeholder.svg"} alt={`Imagem ${i + 1} do embed`} className="h-28 w-full object-cover" />
+                    </div>
+                  ))}
                 </div>
               ) : null}
 
