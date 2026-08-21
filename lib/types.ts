@@ -83,6 +83,9 @@ export type Registration = {
   total_questoes: number | null
   respostas: number[] | null
   prova_finalizada_em: string | null
+  desclassificado: boolean
+  motivo_desclassificacao: string | null
+  desclassificado_em: string | null
   created_at: string
 }
 

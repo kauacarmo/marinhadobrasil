@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
-import { KeyRound, Lock, Loader2, Award, ArrowRight, Clock } from "lucide-react"
-import { acessarProva, enviarRespostas, type QuestaoPublica } from "@/app/prova/actions"
+import { KeyRound, Lock, Loader2, Award, ArrowRight, Clock, ShieldAlert, Ban } from "lucide-react"
+import { acessarProva, enviarRespostas, desclassificarProva, type QuestaoPublica } from "@/app/prova/actions"
 
 type ProvaAtiva = {
   candidato: string
@@ -38,8 +38,47 @@ export function ProvaAcesso() {
   const [restante, setRestante] = useState<number | null>(null)
   const [isPending, startTransition] = useTransition()
 
+  // Antifraude: aviso na primeira saída, desclassificação por cola na reincidência.
+  const [avisoVisivel, setAvisoVisivel] = useState(false)
+  const [desclassificado, setDesclassificado] = useState<string | null>(null)
+
   // Refs para o envio automático quando o tempo esgotar (evita closures antigas)
   const enviarRef = useRef<(forcado?: boolean) => void>(() => {})
+
+  // Refs do antifraude para acessar sempre o estado mais recente nos listeners.
+  const provaRef = useRef<ProvaAtiva | null>(null)
+  const resultadoRef = useRef<Resultado | null>(null)
+  const desclassificadoRef = useRef<string | null>(null)
+  const infracoesRef = useRef(0)
+  const ultimaInfracaoRef = useRef(0)
+  const infracaoRef = useRef<(motivo: string) => void>(() => {})
+  provaRef.current = prova
+  resultadoRef.current = resultado
+  desclassificadoRef.current = desclassificado
+
+  function registrarInfracao(motivo: string) {
+    // Só vale durante a prova ativa e ainda não finalizada/desclassificada.
+    if (!provaRef.current || resultadoRef.current || desclassificadoRef.current) return
+    // Ignora eventos duplicados (blur + visibilitychange disparam quase juntos).
+    const agora = Date.now()
+    if (agora - ultimaInfracaoRef.current < 1000) return
+    ultimaInfracaoRef.current = agora
+
+    infracoesRef.current += 1
+    if (infracoesRef.current >= 2) {
+      const texto = "Saída da tela da prova detectada mais de uma vez (indício de consulta externa)."
+      desclassificadoRef.current = texto
+      setDesclassificado(texto)
+      setAvisoVisivel(false)
+      const codigo = provaRef.current.codigo
+      startTransition(async () => {
+        await desclassificarProva(codigo, motivo || texto)
+      })
+    } else {
+      setAvisoVisivel(true)
+    }
+  }
+  infracaoRef.current = registrarInfracao
 
   function entrar(e: React.FormEvent) {
     e.preventDefault()
@@ -98,6 +137,60 @@ export function ProvaAcesso() {
     const timer = setTimeout(() => setRestante((r) => (r === null ? r : r - 1)), 1000)
     return () => clearTimeout(timer)
   }, [prova, resultado, restante])
+
+  // Antifraude: monitora troca de aba/janela e bloqueia copiar/colar durante a prova.
+  useEffect(() => {
+    if (prova === null || resultado !== null || desclassificado !== null) return
+
+    function aoTrocarVisibilidade() {
+      if (document.hidden) infracaoRef.current("Você trocou de aba ou minimizou a janela durante a prova.")
+    }
+    function aoPerderFoco() {
+      infracaoRef.current("Você saiu da janela da prova.")
+    }
+    function bloquear(e: Event) {
+      e.preventDefault()
+    }
+
+    document.addEventListener("visibilitychange", aoTrocarVisibilidade)
+    window.addEventListener("blur", aoPerderFoco)
+    document.addEventListener("copy", bloquear)
+    document.addEventListener("cut", bloquear)
+    document.addEventListener("paste", bloquear)
+    document.addEventListener("contextmenu", bloquear)
+
+    return () => {
+      document.removeEventListener("visibilitychange", aoTrocarVisibilidade)
+      window.removeEventListener("blur", aoPerderFoco)
+      document.removeEventListener("copy", bloquear)
+      document.removeEventListener("cut", bloquear)
+      document.removeEventListener("paste", bloquear)
+      document.removeEventListener("contextmenu", bloquear)
+    }
+  }, [prova, resultado, desclassificado])
+
+  // DESCLASSIFICADO POR COLA (antifraude)
+  if (desclassificado) {
+    return (
+      <Card className="border-destructive/50 bg-destructive/5 p-8 text-center">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-destructive/15">
+          <Ban className="size-8 text-destructive" />
+        </div>
+        <h2 className="mt-4 font-serif text-2xl font-bold text-destructive">Você foi desclassificado</h2>
+        <p className="mx-auto mt-2 max-w-md text-pretty text-foreground">
+          Nosso sistema antifraude identificou <strong>cola</strong> durante a prova. Conforme as regras do
+          concurso, sua participação foi <strong>desclassificada automaticamente</strong> e as respostas não
+          serão computadas.
+        </p>
+        <p className="mx-auto mt-3 max-w-md rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          Motivo: {desclassificado}
+        </p>
+        <p className="mt-4 text-xs text-muted-foreground">
+          Em caso de discordância, procure a administração da Capitania dos Portos.
+        </p>
+      </Card>
+    )
+  }
 
   // RESULTADO
   if (resultado && prova) {
@@ -165,6 +258,29 @@ export function ProvaAcesso() {
             </div>
           </div>
         </div>
+
+        {/* Antifraude: nota permanente de monitoramento */}
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <ShieldAlert className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span>
+            Prova monitorada por sistema antifraude. Não troque de aba, minimize a janela ou saia da tela — isso
+            é considerado cola e leva à desclassificação automática.
+          </span>
+        </div>
+
+        {/* Antifraude: aviso após a primeira saída da tela */}
+        {avisoVisivel ? (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-3 text-sm font-medium text-destructive"
+          >
+            <ShieldAlert className="mt-0.5 size-5 shrink-0" />
+            <span>
+              Atenção: detectamos que você saiu da tela da prova. Esta é uma advertência. Se sair novamente,
+              você será <strong>desclassificado por cola</strong> automaticamente.
+            </span>
+          </div>
+        ) : null}
 
         {prova.questoes.map((q, qi) => (
           <Card key={qi} className="p-5">
