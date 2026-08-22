@@ -18,7 +18,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-dvh bg-muted/40">
-      <div className="sticky top-0 hidden md:block">
+      <div className="sticky top-0 hidden h-dvh self-start md:block">
         <AdminSidebar papel={papel} />
       </div>
       <main className="flex-1 overflow-x-hidden">{children}</main>
