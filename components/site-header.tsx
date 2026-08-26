@@ -31,13 +31,6 @@ export function SiteHeader() {
             <Link href="/mapa-do-site" className="hover:text-accent">
               Mapa do Site
             </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-1 rounded-sm bg-accent px-2 py-0.5 font-semibold text-accent-foreground hover:opacity-90"
-            >
-              <ShieldCheck className="size-3.5" />
-              Área Administrativa
-            </Link>
           </div>
         </div>
       </div>
@@ -81,16 +74,36 @@ export function SiteHeader() {
             >
               <Search className="size-4" />
             </button>
+            {/* Acesso discreto ao painel: somente ícone, sem rótulo visível. */}
+            <Link
+              href="/login"
+              title="Área Administrativa"
+              className="inline-flex size-9 items-center justify-center rounded-sm text-muted-foreground/40 transition-colors hover:bg-secondary hover:text-primary"
+            >
+              <ShieldCheck className="size-4" />
+              <span className="sr-only">Área Administrativa</span>
+            </Link>
           </nav>
 
-          <button
-            className="inline-flex size-10 items-center justify-center rounded-sm border border-border lg:hidden"
-            onClick={() => setAberto((v) => !v)}
-            aria-label={aberto ? "Fechar menu" : "Abrir menu"}
-            aria-expanded={aberto}
-          >
-            {aberto ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
+          <div className="flex items-center gap-1 lg:hidden">
+            {/* Mesmo acesso discreto ao painel na versão móvel. */}
+            <Link
+              href="/login"
+              title="Área Administrativa"
+              className="inline-flex size-10 items-center justify-center rounded-sm text-muted-foreground/40 transition-colors hover:bg-secondary hover:text-primary"
+            >
+              <ShieldCheck className="size-4" />
+              <span className="sr-only">Área Administrativa</span>
+            </Link>
+            <button
+              className="inline-flex size-10 items-center justify-center rounded-sm border border-border"
+              onClick={() => setAberto((v) => !v)}
+              aria-label={aberto ? "Fechar menu" : "Abrir menu"}
+              aria-expanded={aberto}
+            >
+              {aberto ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Menu mobile */}
