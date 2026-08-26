@@ -242,12 +242,25 @@ export async function gerarProva(contestId: string) {
   const QTD_QUESTOES = 30
   const DURACAO_MINUTOS = 60
 
+  // Contexto do concurso usado tanto pela IA quanto pelo gerador local:
+  // o título e a descrição são a base das questões.
+  const contexto = {
+    titulo: c.titulo,
+    cargo: c.cargo,
+    descricao: c.descricao,
+    tema: c.tema_prova,
+    vagas: c.vagas,
+    escolaridade: c.escolaridade,
+    local: c.local,
+  }
+
   let questoes: Questao[]
   let origem: "ia" | "banco"
+  let motivo: string | undefined
 
   try {
     const { object } = await generateObject({
-      model: "openai/gpt-4o-mini",
+      model: "openai/gpt-4.1-mini",
       schema: z.object({
         questoes: z
           .array(
@@ -261,22 +274,35 @@ export async function gerarProva(contestId: string) {
           .describe(`Exatamente ${QTD_QUESTOES} questões`),
       }),
       prompt: `Você é um elaborador de provas de concurso público da Marinha do Brasil (Capitania dos Portos de São Paulo).
-Gere uma prova de múltipla escolha com ${QTD_QUESTOES} questões para o concurso a seguir.
-Título do concurso: "${c.titulo}".
-Cargo: "${c.cargo}".
-${c.descricao ? `Descrição do concurso: ${c.descricao}.` : ""}
-Conteúdo programático/tema: ${c.tema_prova}.
-As questões devem ser fortemente relacionadas ao título e à descrição do concurso e ao conteúdo programático.
-IMPORTANTE: as questões devem ser todas DIFERENTES entre si — não repita enunciados nem crie variações quase idênticas.
-Cada questão deve ter exatamente 4 alternativas e apenas uma correta.
-Use linguagem formal e nível compatível com concurso público. Responda em português do Brasil.`,
+Elabore uma prova de múltipla escolha com ${QTD_QUESTOES} questões para o concurso abaixo.
+
+TÍTULO DO CONCURSO: "${c.titulo}"
+CARGO: "${c.cargo}"
+DESCRIÇÃO OFICIAL: ${c.descricao || "(não informada)"}
+CONTEÚDO PROGRAMÁTICO: ${c.tema_prova}
+${c.escolaridade ? `ESCOLARIDADE EXIGIDA: ${c.escolaridade}` : ""}
+
+REGRAS OBRIGATÓRIAS:
+1. O TÍTULO e a DESCRIÇÃO são a base da prova: todas as questões devem tratar de conhecimentos exigidos
+   para atuar no cargo e nas atividades descritas acima. Não gere questões genéricas que sirvam para
+   qualquer outro concurso.
+2. Extraia os assuntos diretamente dos termos que aparecem no título e na descrição e aprofunde-os.
+3. As ${QTD_QUESTOES} questões devem ser todas DIFERENTES — não repita enunciados nem crie variações quase idênticas.
+4. Cada questão tem exatamente 4 alternativas e apenas uma correta; varie a posição da alternativa correta.
+5. Linguagem formal, nível de concurso público, em português do Brasil.`,
     })
     questoes = removerRepetidas(object.questoes)
+    // Se a IA devolver menos questões que o esperado, completa com o gerador local.
+    if (questoes.length < QTD_QUESTOES) {
+      questoes = removerRepetidas([...questoes, ...gerarProvaFallback(contexto, QTD_QUESTOES)]).slice(0, QTD_QUESTOES)
+    }
     origem = "ia"
-  } catch {
-    // Fallback: geração por IA indisponível (ex.: AI Gateway sem cartão).
-    // Usa o banco de questões de exemplo por tema para não travar o fluxo.
-    questoes = removerRepetidas(gerarProvaFallback(c.tema_prova, QTD_QUESTOES))
+  } catch (e) {
+    // Geração por IA indisponível (ex.: AI Gateway sem cartão cadastrado).
+    // Gera localmente questões baseadas no título e na descrição do concurso.
+    motivo = e instanceof Error ? e.message : String(e)
+    console.log("[v0] gerarProva: IA indisponível, usando gerador local:", motivo)
+    questoes = removerRepetidas(gerarProvaFallback(contexto, QTD_QUESTOES))
     origem = "banco"
   }
 
@@ -292,7 +318,7 @@ Use linguagem formal e nível compatível com concurso público. Responda em por
   if (error) return { error: error.message }
 
   revalidatePath("/admin/concursos")
-  return { success: true, quantidade: questoes.length, origem }
+  return { success: true, quantidade: questoes.length, origem, motivo }
 }
 
 export async function getExam(contestId: string): Promise<Exam | null> {
