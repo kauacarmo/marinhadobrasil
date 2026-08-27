@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useTransition } from "react"
+import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import Link from "next/link"
 import {
   Ship,
@@ -11,9 +11,10 @@ import {
   TriangleAlert,
   CheckCircle2,
   Eye,
-  ImageIcon,
   Plus,
   Anchor,
+  Download,
+  UserRound,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { cn } from "@/lib/utils"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
 import { emitirDocumentoAquaviario } from "@/app/admin/aquaviarios/actions"
+import { gerarCardDocumento, nomeArquivoCard, type DadosCard } from "@/lib/gerar-card-documento"
 
 type Campo = {
   key: string
@@ -66,15 +68,69 @@ export function AquaviariosManager({
   const [valores, setValores] = useState<Record<string, string>>({})
   const [fotoUrl, setFotoUrl] = useState("")
   const [mencao, setMencao] = useState("")
+  const [mencaoPessoa, setMencaoPessoa] = useState("")
   const [rodape, setRodape] = useState("")
   const [enviandoFoto, setEnviandoFoto] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [cardPreview, setCardPreview] = useState("")
+  const [gerandoCard, setGerandoCard] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const temWebhook = webhooks[tipo] > 0
   const campos = CAMPOS[tipo]
+
+  const camposPreenchidos = useMemo(
+    () => campos.map((c) => ({ label: c.label, valor: (valores[c.key] || "").trim() })).filter((c) => c.valor),
+    [campos, valores],
+  )
+
+  const dadosCard = useMemo<DadosCard>(
+    () => ({
+      tipo,
+      titulo: DOC_AQUAVIARIO_LABEL[tipo],
+      titular: titular.trim(),
+      campos: camposPreenchidos,
+      fotoUrl: fotoUrl || undefined,
+      rodape,
+    }),
+    [tipo, titular, camposPreenchidos, fotoUrl, rodape],
+  )
+
+  const podeGerar = Boolean(titular.trim()) && camposPreenchidos.length > 0
+
+  // Regenera o card sempre que os dados mudam, com um pequeno atraso para não
+  // redesenhar a cada tecla. A prévia é exatamente o PNG baixado e enviado.
+  useEffect(() => {
+    if (!podeGerar) {
+      setCardPreview("")
+      return
+    }
+    let cancelado = false
+    let urlCriada = ""
+    setGerandoCard(true)
+    const timer = setTimeout(async () => {
+      try {
+        const blob = await gerarCardDocumento(dadosCard)
+        if (cancelado) return
+        urlCriada = URL.createObjectURL(blob)
+        setCardPreview((anterior) => {
+          if (anterior) URL.revokeObjectURL(anterior)
+          return urlCriada
+        })
+      } catch {
+        if (!cancelado) setCardPreview("")
+      } finally {
+        if (!cancelado) setGerandoCard(false)
+      }
+    }, 350)
+
+    return () => {
+      cancelado = true
+      clearTimeout(timer)
+    }
+  }, [dadosCard, podeGerar])
 
   function trocarTipo(t: TipoDocAquaviario) {
     if (t === tipo) return
@@ -106,21 +162,48 @@ export function AquaviariosManager({
     }
   }
 
+  async function baixarCard() {
+    setErro(null)
+    try {
+      const blob = await gerarCardDocumento(dadosCard)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = nomeArquivoCard(tipo, titular)
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setErro("Não foi possível gerar o card para download.")
+    }
+  }
+
   function emitir() {
     setErro(null)
-    const camposPayload = campos
-      .map((c) => ({ label: c.label, valor: (valores[c.key] || "").trim() }))
-      .filter((c) => c.valor)
-
-    const fd = new FormData()
-    fd.set("tipo", tipo)
-    fd.set("titular", titular)
-    fd.set("campos", JSON.stringify(camposPayload))
-    fd.set("foto_url", fotoUrl)
-    fd.set("mencao", mencao)
-    fd.set("rodape", rodape)
-
     startTransition(async () => {
+      let cardUrl = ""
+      try {
+        // Hospeda o card para que o Discord possa exibi-lo no embed.
+        const blob = await gerarCardDocumento(dadosCard)
+        const fd = new FormData()
+        fd.set("file", new File([blob], nomeArquivoCard(tipo, titular), { type: "image/png" }))
+        const res = await fetch("/api/noticias/upload", { method: "POST", body: fd })
+        const json = await res.json()
+        if (res.ok) cardUrl = json.url
+      } catch {
+        // Sem o card, o documento ainda é enviado com os campos no embed.
+        cardUrl = ""
+      }
+
+      const fd = new FormData()
+      fd.set("tipo", tipo)
+      fd.set("titular", titular)
+      fd.set("campos", JSON.stringify(camposPreenchidos))
+      fd.set("foto_url", fotoUrl)
+      fd.set("card_url", cardUrl)
+      fd.set("mencao", mencao)
+      fd.set("mencao_pessoa", mencaoPessoa)
+      fd.set("rodape", rodape)
+
       const res = await emitirDocumentoAquaviario(fd)
       if (res?.error) setErro(res.error)
       else {
@@ -128,6 +211,7 @@ export function AquaviariosManager({
         setValores({})
         setFotoUrl("")
         setMencao("")
+        setMencaoPessoa("")
         setRodape("")
         flash(`${DOC_AQUAVIARIO_LABEL[tipo]} emitida e enviada por webhook.`)
       }
@@ -185,7 +269,7 @@ export function AquaviariosManager({
               Emitir {DOC_AQUAVIARIO_LABEL[tipo]}
             </CardTitle>
             <CardDescription>
-              Preencha os dados do documento. Ao emitir, ele é enviado ao canal correspondente via webhook.
+              Preencha os dados para gerar o card do documento. Ao emitir, o card é enviado ao canal via webhook.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -253,7 +337,11 @@ export function AquaviariosManager({
               {fotoUrl ? (
                 <div className="flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={fotoUrl || "/placeholder.svg"} alt="Foto do titular" className="size-20 rounded-md border border-border object-cover" />
+                  <img
+                    src={fotoUrl || "/placeholder.svg"}
+                    alt="Foto do titular"
+                    className="size-20 rounded-md border border-border object-cover"
+                  />
                   <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
                     Trocar foto
                   </Button>
@@ -280,7 +368,23 @@ export function AquaviariosManager({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="mencao">Mencionar</Label>
+                <Label htmlFor="mencao_pessoa">Mencionar o titular</Label>
+                <div className="relative">
+                  <UserRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="mencao_pessoa"
+                    placeholder="ID do Discord ou @usuario"
+                    className="pl-9"
+                    value={mencaoPessoa}
+                    onChange={(e) => setMencaoPessoa(e.target.value)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Cole o ID do usuário para notificá-lo diretamente na mensagem.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mencao">Menção geral</Label>
                 <div className="relative">
                   <AtSign className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -292,20 +396,28 @@ export function AquaviariosManager({
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="rodape">Rodapé</Label>
-                <Input
-                  id="rodape"
-                  placeholder="Assinatura ou observação"
-                  value={rodape}
-                  onChange={(e) => setRodape(e.target.value)}
-                />
-              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="rodape">Rodapé</Label>
+              <Input
+                id="rodape"
+                placeholder="Assinatura ou observação"
+                value={rodape}
+                onChange={(e) => setRodape(e.target.value)}
+              />
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-3">
               {erro ? <p className="mr-auto text-sm text-destructive">{erro}</p> : null}
-              <Button type="button" onClick={emitir} disabled={isPending || enviandoFoto || !temWebhook}>
+              <Button type="button" variant="outline" onClick={baixarCard} disabled={!podeGerar || isPending}>
+                <Download className="size-4" /> Baixar card
+              </Button>
+              <Button
+                type="button"
+                onClick={emitir}
+                disabled={isPending || enviandoFoto || !temWebhook || !podeGerar}
+              >
                 {isPending ? (
                   <>
                     <Loader2 className="size-4 animate-spin" /> Emitindo...
@@ -321,82 +433,30 @@ export function AquaviariosManager({
         </Card>
       </div>
 
-      {/* Pré-visualização do documento */}
+      {/* Card do documento: mesma imagem baixada e enviada por webhook */}
       <div className="lg:sticky lg:top-6 lg:self-start">
         <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Eye className="size-4" />
-          Pré-visualização
+          Card do documento
+          {gerandoCard ? <Loader2 className="size-3.5 animate-spin" /> : null}
         </div>
-        <DocumentoPreview
-          tipo={tipo}
-          titular={titular}
-          valores={valores}
-          campos={campos}
-          fotoUrl={fotoUrl}
-          rodape={rodape}
-        />
-      </div>
-    </div>
-  )
-}
-
-function DocumentoPreview({
-  tipo,
-  titular,
-  valores,
-  campos,
-  fotoUrl,
-  rodape,
-}: {
-  tipo: TipoDocAquaviario
-  titular: string
-  valores: Record<string, string>
-  campos: Campo[]
-  fotoUrl: string
-  rodape: string
-}) {
-  const preenchidos = campos.filter((c) => (valores[c.key] || "").trim())
-  const corBarra = tipo === "carteira_nautica" ? "bg-[#0f5132]" : "bg-[#1e3a5f]"
-
-  return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      <div className={cn("flex items-center gap-2 px-4 py-2.5 text-primary-foreground", corBarra)}>
-        <Anchor className="size-4" />
-        <span className="text-xs font-semibold uppercase tracking-wide">Marinha do Brasil</span>
-      </div>
-      <div className="p-4">
-        <p className="font-serif text-sm font-bold text-primary text-balance">{DOC_AQUAVIARIO_LABEL[tipo]}</p>
-        <div className="mt-3 flex gap-3">
-          <div className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted">
-            {fotoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={fotoUrl || "/placeholder.svg"} alt="Foto do titular" className="size-full object-cover" />
-            ) : (
-              <ImageIcon className="size-6 text-muted-foreground" />
-            )}
+        {cardPreview ? (
+          <div className="space-y-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={cardPreview || "/placeholder.svg"}
+              alt={`Card do documento ${DOC_AQUAVIARIO_LABEL[tipo]} de ${titular || "titular"}`}
+              className="w-full rounded-lg border border-border shadow-sm"
+            />
+            <Button type="button" variant="outline" size="sm" className="w-full" onClick={baixarCard}>
+              <Download className="size-4" /> Baixar PNG
+            </Button>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-medium uppercase text-muted-foreground">Titular</p>
-            <p className="truncate font-semibold text-foreground">{titular.trim() || "—"}</p>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border bg-muted/20 px-6 py-12 text-center text-sm text-muted-foreground">
+            Informe o titular e ao menos um campo para gerar o card.
           </div>
-        </div>
-
-        <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-2">
-          {preenchidos.length > 0 ? (
-            preenchidos.map((c) => (
-              <div key={c.key} className={cn(c.tipo === "textarea" && "col-span-2")}>
-                <dt className="text-[10px] font-medium uppercase text-muted-foreground">{c.label}</dt>
-                <dd className="text-sm text-foreground">{valores[c.key]}</dd>
-              </div>
-            ))
-          ) : (
-            <p className="col-span-2 text-sm text-muted-foreground">Preencha os campos para ver a prévia.</p>
-          )}
-        </dl>
-
-        <div className="mt-4 border-t border-border pt-2 text-[11px] text-muted-foreground">
-          {rodape.trim() || "Documento emitido pela Capitania dos Portos"}
-        </div>
+        )}
       </div>
     </div>
   )
