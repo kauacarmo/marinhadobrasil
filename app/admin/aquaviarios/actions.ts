@@ -20,6 +20,18 @@ export async function contarWebhooksAquaviarios(): Promise<{ cir: number; cartei
 
 type CampoEntrada = { label?: string; valor?: string }
 
+/**
+ * Normaliza a menção do titular para o formato do Discord.
+ * Aceita o ID numérico do usuário, a menção já formatada ou um @apelido.
+ */
+function normalizarMencaoPessoa(bruto: string): string {
+  const v = bruto.trim()
+  if (!v) return ""
+  if (/^<@!?\d+>$/.test(v)) return v
+  if (/^\d{5,25}$/.test(v)) return `<@${v}>`
+  return v
+}
+
 export async function emitirDocumentoAquaviario(formData: FormData) {
   const tipo = String(formData.get("tipo") || "") as TipoDocAquaviario
   if (tipo !== "cir" && tipo !== "carteira_nautica") {
@@ -29,7 +41,15 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
   const titular = String(formData.get("titular") || "").trim()
   const foto_url = String(formData.get("foto_url") || "").trim() || null
   const rodape = String(formData.get("rodape") || "").trim() || null
-  const mencao = String(formData.get("mencao") || "").trim() || null
+
+  // Card visual do documento (PNG) gerado no navegador e hospedado no Blob.
+  const cardBruto = String(formData.get("card_url") || "").trim()
+  const card_url = /^https?:\/\//i.test(cardBruto) ? cardBruto : null
+
+  // Menção geral (ex.: @everyone) + menção direta ao titular do documento.
+  const mencaoGeral = String(formData.get("mencao") || "").trim()
+  const mencaoPessoa = normalizarMencaoPessoa(String(formData.get("mencao_pessoa") || ""))
+  const mencao = [mencaoGeral, mencaoPessoa].filter(Boolean).join(" ") || null
 
   let campos: { label: string; valor: string }[] = []
   try {
@@ -66,6 +86,7 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
     titular,
     campos,
     foto_url,
+    card_url,
     rodape,
     mencao,
     data: new Date().toISOString().slice(0, 10),

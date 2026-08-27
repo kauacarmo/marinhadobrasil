@@ -25,7 +25,8 @@ export function montarMensagem(evento: string, dados: unknown): string {
         const valor = typeof c?.valor === "string" ? c.valor.trim() : ""
         if (label && valor) linhas.push(`${label}: ${valor}`)
       }
-      if (typeof d.foto_url === "string" && d.foto_url.trim()) linhas.push(d.foto_url.trim())
+      if (typeof d.card_url === "string" && d.card_url.trim()) linhas.push(d.card_url.trim())
+      else if (typeof d.foto_url === "string" && d.foto_url.trim()) linhas.push(d.foto_url.trim())
       if (typeof d.rodape === "string" && d.rodape.trim()) linhas.push(`_${d.rodape.trim()}_`)
       return linhas.join("\n")
     }
@@ -116,6 +117,10 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
       }
       if (titular) embed.description = `**Titular:** ${titular}`
       if (foto) embed.thumbnail = { url: foto }
+
+      // O card do documento entra como imagem principal do embed.
+      const card = typeof d.card_url === "string" && /^https?:\/\//i.test(d.card_url.trim()) ? d.card_url.trim() : ""
+      if (card) embed.image = { url: card }
 
       return JSON.stringify({ content: mencao || undefined, embeds: [embed] })
     }
