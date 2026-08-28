@@ -93,7 +93,9 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
     // ---- Aquaviários: documento oficial (CIR / Carteira Náutica) ----
     if (typeof d.documento === "string" && Array.isArray(d.campos) && evento !== "teste") {
       const urlPortal = "https://www.marinha.mil.br/"
-      const cor = d.documento === "carteira_nautica" ? 0x0f5132 : 0x1e3a5f
+      const ehFuncional = d.documento === "funcional_militar"
+      const cor = d.documento === "carteira_nautica" ? 0x0f5132 : ehFuncional ? 0x0b3d91 : 0x1e3a5f
+      const orgao = ehFuncional ? "Ministério da Defesa" : "Capitania dos Portos"
       const titular = typeof d.titular === "string" ? d.titular.trim() : ""
       const foto = typeof d.foto_url === "string" && /^https?:\/\//i.test(d.foto_url.trim()) ? d.foto_url.trim() : ""
 
@@ -107,12 +109,12 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
         .slice(0, 24)
 
       const embed: Record<string, unknown> = {
-        author: { name: "Marinha do Brasil — Capitania dos Portos", url: urlPortal },
+        author: { name: `Marinha do Brasil — ${orgao}`, url: urlPortal },
         title: titulo || "Documento oficial",
         url: urlPortal,
         color: cor,
         fields,
-        footer: { text: rodape || "Documento emitido pela Capitania dos Portos" },
+        footer: { text: rodape || `Documento emitido pela ${orgao}` },
         timestamp: new Date().toISOString(),
       }
       if (titular) embed.description = `**Titular:** ${titular}`

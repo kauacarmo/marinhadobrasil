@@ -5,6 +5,7 @@ import Link from "next/link"
 import {
   Ship,
   BookMarked,
+  IdCard,
   Loader2,
   AtSign,
   Send,
@@ -51,17 +52,26 @@ const CAMPOS: Record<TipoDocAquaviario, Campo[]> = {
     { key: "numero", label: "Nº da carteira", tipo: "text", placeholder: "ex.: CN-000000" },
     { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
   ],
+  funcional_militar: [
+    { key: "nr_registro", label: "Nº de registro", tipo: "text", placeholder: "ex.: 000000000-0" },
+    { key: "posto", label: "Posto / Graduação / Categoria", tipo: "text", placeholder: "ex.: Primeiro-Tenente" },
+    { key: "data_nascimento", label: "Data de nascimento", tipo: "text", placeholder: "ex.: 01/01/1990" },
+    { key: "nip", label: "NIP", tipo: "text", placeholder: "ex.: 00.0000.00" },
+    { key: "cpf", label: "CPF", tipo: "text", placeholder: "ex.: 000.000.000-00" },
+    { key: "ric", label: "RIC", tipo: "text", placeholder: "ex.: 0000000000" },
+  ],
 }
 
 const TIPOS: { valor: TipoDocAquaviario; label: string; icon: typeof Ship }[] = [
   { valor: "cir", label: "CIR", icon: BookMarked },
   { valor: "carteira_nautica", label: "Carteira Náutica", icon: Ship },
+  { valor: "funcional_militar", label: "Funcional Militar", icon: IdCard },
 ]
 
 export function AquaviariosManager({
   webhooks,
 }: {
-  webhooks: { cir: number; carteira_nautica: number }
+  webhooks: { cir: number; carteira_nautica: number; funcional_militar: number }
 }) {
   const [tipo, setTipo] = useState<TipoDocAquaviario>("cir")
   const [titular, setTitular] = useState("")
