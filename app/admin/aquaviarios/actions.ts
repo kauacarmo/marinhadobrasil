@@ -4,18 +4,31 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { dispararWebhooks } from "@/lib/webhooks"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
 
-// Conta quantos webhooks ativos existem por aba (cir e carteira_nautica).
-export async function contarWebhooksAquaviarios(): Promise<{ cir: number; carteira_nautica: number }> {
+// Conta quantos webhooks ativos existem por aba (cir, carteira_nautica e funcional_militar).
+export async function contarWebhooksAquaviarios(): Promise<{
+  cir: number
+  carteira_nautica: number
+  funcional_militar: number
+}> {
   const supabase = createAdminClient()
-  const [cir, carteira] = await Promise.all([
+  const [cir, carteira, funcional] = await Promise.all([
     supabase.from("webhooks").select("id", { count: "exact", head: true }).eq("aba", "cir").eq("ativo", true),
     supabase
       .from("webhooks")
       .select("id", { count: "exact", head: true })
       .eq("aba", "carteira_nautica")
       .eq("ativo", true),
+    supabase
+      .from("webhooks")
+      .select("id", { count: "exact", head: true })
+      .eq("aba", "funcional_militar")
+      .eq("ativo", true),
   ])
-  return { cir: cir.count ?? 0, carteira_nautica: carteira.count ?? 0 }
+  return {
+    cir: cir.count ?? 0,
+    carteira_nautica: carteira.count ?? 0,
+    funcional_militar: funcional.count ?? 0,
+  }
 }
 
 type CampoEntrada = { label?: string; valor?: string }
@@ -34,7 +47,7 @@ function normalizarMencaoPessoa(bruto: string): string {
 
 export async function emitirDocumentoAquaviario(formData: FormData) {
   const tipo = String(formData.get("tipo") || "") as TipoDocAquaviario
-  if (tipo !== "cir" && tipo !== "carteira_nautica") {
+  if (tipo !== "cir" && tipo !== "carteira_nautica" && tipo !== "funcional_militar") {
     return { error: "Tipo de documento inválido." }
   }
 
