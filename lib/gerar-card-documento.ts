@@ -268,104 +268,20 @@ function acharCampo(campos: CampoCard[], ...candidatos: string[]): string {
   return achado ? achado.valor.trim() : ""
 }
 
-/** Estrela de cinco pontas (usada no brasão da República). */
-function estrela(ctx: CanvasRenderingContext2D, cx: number, cy: number, raio: number, cor: string) {
-  ctx.save()
-  ctx.beginPath()
-  for (let i = 0; i < 5; i++) {
-    const ang = -Math.PI / 2 + (i * 2 * Math.PI) / 5
-    const angI = ang + Math.PI / 5
-    const rx = cx + Math.cos(ang) * raio
-    const ry = cy + Math.sin(ang) * raio
-    const ix = cx + Math.cos(angI) * (raio * 0.42)
-    const iy = cy + Math.sin(angI) * (raio * 0.42)
-    if (i === 0) ctx.moveTo(rx, ry)
-    else ctx.lineTo(rx, ry)
-    ctx.lineTo(ix, iy)
-  }
-  ctx.closePath()
-  ctx.fillStyle = cor
-  ctx.fill()
-  ctx.restore()
-}
-
-/** Brasão simplificado da República (medalhão circular com estrela). */
-function desenharBrasao(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
-  ctx.save()
-  ctx.beginPath()
-  ctx.arc(cx, cy, r, 0, Math.PI * 2)
-  ctx.fillStyle = "#1f6b3a"
-  ctx.fill()
-  ctx.lineWidth = r * 0.16
-  ctx.strokeStyle = DOURADO
-  ctx.stroke()
-  ctx.beginPath()
-  ctx.arc(cx, cy, r * 0.62, 0, Math.PI * 2)
-  ctx.fillStyle = "#0b3d91"
-  ctx.fill()
-  estrela(ctx, cx, cy, r * 0.5, "#f2c14e")
-  ctx.restore()
-}
-
-/** Emblema naval simplificado (âncora dourada em medalhão). */
-function desenharAncora(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
-  ctx.save()
-  ctx.beginPath()
-  ctx.arc(cx, cy, r, 0, Math.PI * 2)
-  ctx.strokeStyle = DOURADO
-  ctx.lineWidth = r * 0.12
-  ctx.stroke()
-
-  ctx.strokeStyle = DOURADO
-  ctx.lineWidth = Math.max(2, r * 0.1)
-  ctx.lineCap = "round"
-  const topo = cy - r * 0.62
-  const base = cy + r * 0.62
-  // Haste
-  ctx.beginPath()
-  ctx.moveTo(cx, topo + r * 0.16)
-  ctx.lineTo(cx, base)
-  ctx.stroke()
-  // Argola
-  ctx.beginPath()
-  ctx.arc(cx, topo + r * 0.1, r * 0.12, 0, Math.PI * 2)
-  ctx.stroke()
-  // Braço horizontal
-  ctx.beginPath()
-  ctx.moveTo(cx - r * 0.34, topo + r * 0.42)
-  ctx.lineTo(cx + r * 0.34, topo + r * 0.42)
-  ctx.stroke()
-  // Patas curvas
-  ctx.beginPath()
-  ctx.arc(cx, base - r * 0.42, r * 0.52, Math.PI * 0.15, Math.PI * 0.85)
-  ctx.stroke()
-  ctx.restore()
-}
-
-/** Chip dourado (como nos documentos com chip). */
-function desenharChip(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-  caminhoArredondado(ctx, x, y, w, h, 8)
-  ctx.fillStyle = "#d4b160"
-  ctx.fill()
-  ctx.strokeStyle = "#a9862f"
-  ctx.lineWidth = 1.5
-  ctx.stroke()
-  ctx.strokeStyle = "#a9862f"
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.moveTo(x, y + h / 2)
-  ctx.lineTo(x + w, y + h / 2)
-  ctx.moveTo(x + w * 0.34, y)
-  ctx.lineTo(x + w * 0.34, y + h)
-  ctx.moveTo(x + w * 0.66, y)
-  ctx.lineTo(x + w * 0.66, y + h)
-  ctx.stroke()
-}
+// Modelo oficial da Identidade Funcional Militar (criado pelo usuário).
+// O card é gerado usando ESTA imagem como fundo — sem redesenhar nada —,
+// sobrepondo apenas os dados e a foto sobre os campos já impressos no modelo.
+const TEMPLATE_FUNCIONAL = "/documentos/identidade-funcional-militar.png"
 
 async function gerarCardFuncionalMilitar(dados: DadosCard): Promise<Blob> {
-  const L = 1000
-  const A = 630
-  const foto = dados.fotoUrl ? await carregarImagem(dados.fotoUrl) : null
+  const [template, foto] = await Promise.all([
+    carregarImagem(TEMPLATE_FUNCIONAL),
+    dados.fotoUrl ? carregarImagem(dados.fotoUrl) : Promise.resolve(null),
+  ])
+
+  // Usa as dimensões nativas do modelo para que as posições fiquem exatas.
+  const L = template?.width ?? 992
+  const A = template?.height ?? 654
 
   const canvas = document.createElement("canvas")
   canvas.width = L * ESCALA
@@ -375,130 +291,62 @@ async function gerarCardFuncionalMilitar(dados: DadosCard): Promise<Blob> {
   ctx.scale(ESCALA, ESCALA)
   ctx.textBaseline = "alphabetic"
 
-  // Fundo com leve textura guilloché (linhas diagonais tênues).
-  ctx.fillStyle = "#e9f1ef"
-  ctx.fillRect(0, 0, L, A)
-  ctx.save()
-  ctx.strokeStyle = "rgba(15,81,50,0.06)"
-  ctx.lineWidth = 1
-  for (let i = -A; i < L; i += 14) {
-    ctx.beginPath()
-    ctx.moveTo(i, 0)
-    ctx.lineTo(i + A, A)
-    ctx.stroke()
-  }
-  ctx.restore()
-
-  // Moldura
-  ctx.strokeStyle = "#c8d6cf"
-  ctx.lineWidth = 2
-  ctx.strokeRect(6, 6, L - 12, A - 12)
-
-  const PAD = 40
-  const NAVY = "#0b3d91"
-  const rotulo = "#3d6b57"
-
-  // Cabeçalho
-  desenharBrasao(ctx, PAD + 60, 96, 58)
-  desenharAncora(ctx, L - PAD - 52, 92, 44)
-
-  ctx.textAlign = "center"
-  ctx.fillStyle = NAVY
-  ctx.font = `bold 30px ${FONTE_SERIF}`
-  ctx.fillText("REPÚBLICA FEDERATIVA DO BRASIL", L / 2, 70)
-  ctx.font = `600 19px ${FONTE_SANS}`
-  ctx.fillText("MINISTÉRIO DA DEFESA", L / 2, 98)
-  ctx.font = `bold 21px ${FONTE_SERIF}`
-  ctx.fillText("MARINHA DO BRASIL", L / 2, 126)
-  ctx.textAlign = "left"
-
-  // Filete dourado sob o cabeçalho
-  ctx.fillStyle = DOURADO
-  ctx.fillRect(PAD, 150, L - PAD * 2, 3)
-
-  // Helper para desenhar um campo (rótulo pequeno + valor).
-  function campo(label: string, valor: string, x: number, y: number, tamValor = 24, largura = 360) {
-    ctx!.fillStyle = rotulo
-    ctx!.font = `bold 13px ${FONTE_SANS}`
-    ctx!.fillText(label, x, y)
-    ctx!.fillStyle = TEXTO
-    ctx!.font = `600 ${tamValor}px ${FONTE_SANS}`
-    const linhas = quebrarLinhas(ctx!, valor || "—", largura)
-    ctx!.fillText(linhas[0], x, y + tamValor + 8)
+  // Fundo = o modelo exato enviado pelo usuário.
+  if (template) ctx.drawImage(template, 0, 0, L, A)
+  else {
+    ctx.fillStyle = "#cfe3d8"
+    ctx.fillRect(0, 0, L, A)
   }
 
-  // Foto do titular à direita
-  const fx = L - PAD - 180
-  const fy = 186
-  const fw = 180
-  const fh = 226
-  caminhoArredondado(ctx, fx, fy, fw, fh, 8)
-  ctx.save()
-  ctx.clip()
+  const NAVY = "#12305f"
+
+  // Foto do militar dentro do retângulo cinza do modelo (efeito "cover").
+  const fx = L * 0.773
+  const fy = A * 0.323
+  const fw = L * 0.207
+  const fh = A * 0.404
   if (foto) {
+    ctx.save()
+    caminhoArredondado(ctx, fx, fy, fw, fh, 16)
+    ctx.clip()
     const escala = Math.max(fw / foto.width, fh / foto.height)
     const lw = foto.width * escala
     const lh = foto.height * escala
     ctx.drawImage(foto, fx + (fw - lw) / 2, fy + (fh - lh) / 2, lw, lh)
-  } else {
-    ctx.fillStyle = "#dbe6e1"
-    ctx.fillRect(fx, fy, fw, fh)
-    ctx.fillStyle = MUTED
-    ctx.font = `13px ${FONTE_SANS}`
-    ctx.textAlign = "center"
-    ctx.fillText("SEM FOTO", fx + fw / 2, fy + fh / 2)
-    ctx.textAlign = "left"
+    ctx.restore()
   }
-  ctx.restore()
-  caminhoArredondado(ctx, fx, fy, fw, fh, 8)
-  ctx.strokeStyle = "#b9c9c2"
-  ctx.lineWidth = 1.5
-  ctx.stroke()
 
-  // Coluna de dados (à esquerda da foto)
-  const colDir = fx - 40
-  campo("NOME", dados.titular, PAD, 200, 26, colDir - PAD)
-  campo("NR REGISTRO", acharCampo(dados.campos, "Nº de registro", "NR Registro", "Numero de registro"), PAD, 268, 24, colDir - PAD)
+  // Escreve o valor de um campo sobre o modelo, na posição do rótulo impresso.
+  function valor(
+    texto: string,
+    x: number,
+    y: number,
+    tam: number,
+    opts?: { center?: boolean; max?: number },
+  ) {
+    const t = (texto || "").trim()
+    if (!t) return
+    ctx!.fillStyle = NAVY
+    ctx!.font = `600 ${tam}px ${FONTE_SANS}`
+    ctx!.textAlign = opts?.center ? "center" : "left"
+    const linhas = quebrarLinhas(ctx!, t, opts?.max ?? L * 0.4)
+    ctx!.fillText(linhas[0], x, y)
+    ctx!.textAlign = "left"
+  }
 
-  // Chip + seta e POSTO/GRAD/CAT
-  desenharChip(ctx, PAD, 300, 96, 74)
-  ctx.fillStyle = NAVY
-  ctx.beginPath()
-  ctx.moveTo(PAD + 112, 320)
-  ctx.lineTo(PAD + 148, 337)
-  ctx.lineTo(PAD + 112, 354)
-  ctx.closePath()
-  ctx.fill()
-  campo("POSTO / GRAD / CAT", acharCampo(dados.campos, "Posto / Graduação / Categoria", "Posto Grad Cat", "Posto"), PAD + 172, 320, 24, colDir - (PAD + 172))
-
-  // DATA NASCIMENTO
-  campo("DATA NASCIMENTO", acharCampo(dados.campos, "Data de nascimento", "Data nascimento"), PAD, 410, 22, 300)
-
-  // Linha inferior: NIP, CPF, RIC
-  const yBase = 480
-  campo("NIP", acharCampo(dados.campos, "NIP"), PAD, yBase, 22, 220)
-  campo("CPF", acharCampo(dados.campos, "CPF"), PAD + 300, yBase, 22, 220)
-  campo("RIC", acharCampo(dados.campos, "RIC"), PAD + 600, yBase, 22, 240)
-
-  // Assinatura
-  const ySig = A - 70
-  ctx.strokeStyle = "#9fb3aa"
-  ctx.lineWidth = 1
-  ctx.beginPath()
-  ctx.moveTo(PAD, ySig)
-  ctx.lineTo(PAD + 360, ySig)
-  ctx.stroke()
-  ctx.fillStyle = rotulo
-  ctx.font = `12px ${FONTE_SANS}`
-  ctx.fillText("ASSINATURA DO TITULAR", PAD, ySig + 20)
-
-  // Rodapé / data de emissão
-  ctx.textAlign = "right"
-  ctx.fillStyle = MUTED
-  ctx.font = `12px ${FONTE_SANS}`
-  const rod = (dados.rodape || "").trim() || "Documento emitido pela Marinha do Brasil"
-  ctx.fillText(`${rod} — ${new Date().toLocaleDateString("pt-BR")}`, L - PAD, ySig + 20)
-  ctx.textAlign = "left"
+  const campos = dados.campos
+  // NOME (à direita do rótulo "NOME")
+  valor(dados.titular, L * 0.248, A * 0.19, A * 0.036, { max: L * 0.55 })
+  // NR REGISTRO (abaixo do rótulo, no topo direito)
+  valor(acharCampo(campos, "Nº de registro", "NR Registro", "Numero de registro"), L * 0.915, A * 0.255, A * 0.03, { center: true, max: L * 0.2 })
+  // POST / GRAD CAT (à direita do rótulo)
+  valor(acharCampo(campos, "Posto / Graduação / Categoria", "Posto Grad Cat", "Posto"), L * 0.395, A * 0.475, A * 0.032, { max: L * 0.34 })
+  // DATA DE NASCIMENTO (abaixo do rótulo)
+  valor(acharCampo(campos, "Data de nascimento", "Data nascimento"), L * 0.035, A * 0.605, A * 0.032, { max: L * 0.2 })
+  // Linha inferior: NIP, CPF, RIC (abaixo de cada rótulo)
+  valor(acharCampo(campos, "NIP"), L * 0.047, A * 0.72, A * 0.03, { max: L * 0.16 })
+  valor(acharCampo(campos, "CPF"), L * 0.232, A * 0.72, A * 0.03, { max: L * 0.18 })
+  valor(acharCampo(campos, "RIC"), L * 0.435, A * 0.72, A * 0.03, { max: L * 0.2 })
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Não foi possível gerar o card."))), "image/png")
