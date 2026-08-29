@@ -16,6 +16,8 @@ import {
   Anchor,
   Download,
   UserRound,
+  Camera,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -87,6 +89,13 @@ export function AquaviariosManager({
   const [cardPreview, setCardPreview] = useState("")
   const [gerandoCard, setGerandoCard] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Captura de foto pela câmera ("em game": aponta a webcam para a tela do jogo).
+  const [cameraAberta, setCameraAberta] = useState(false)
+  const [cameraErro, setCameraErro] = useState<string | null>(null)
+  const [capturando, setCapturando] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   const temWebhook = webhooks[tipo] > 0
   const campos = CAMPOS[tipo]
@@ -171,6 +180,62 @@ export function AquaviariosManager({
       setEnviandoFoto(false)
     }
   }
+
+  async function abrirCamera() {
+    setCameraErro(null)
+    setCameraAberta(true)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+        audio: false,
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play().catch(() => {})
+      }
+    } catch {
+      setCameraErro("Não foi possível acessar a câmera. Verifique as permissões do navegador.")
+    }
+  }
+
+  function fecharCamera() {
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
+    setCameraAberta(false)
+  }
+
+  async function capturarFoto() {
+    const video = videoRef.current
+    if (!video || !video.videoWidth) return
+    setCapturando(true)
+    try {
+      const canvas = document.createElement("canvas")
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+      const ctx = canvas.getContext("2d")
+      if (!ctx) throw new Error("Falha ao capturar a imagem.")
+      ctx.drawImage(video, 0, 0)
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"))
+      fecharCamera()
+      if (blob) {
+        const file = new File([blob], `foto-${Date.now()}.png`, { type: "image/png" })
+        await enviarFoto(file)
+      }
+    } catch {
+      setCameraErro("Falha ao capturar a foto. Tente novamente.")
+    } finally {
+      setCapturando(false)
+    }
+  }
+
+  // Encerra a câmera se o componente for desmontado com ela aberta.
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+    }
+  }, [])
 
   async function baixarCard() {
     setErro(null)
@@ -352,27 +417,42 @@ export function AquaviariosManager({
                     alt="Foto do titular"
                     className="size-20 rounded-md border border-border object-cover"
                   />
-                  <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
-                    Trocar foto
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+                      Trocar foto
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={abrirCamera}>
+                      <Camera className="size-4" /> Tirar foto
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={enviandoFoto}
-                  className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/30 px-4 py-5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 disabled:opacity-60"
-                >
-                  {enviandoFoto ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" /> Enviando foto...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="size-4" /> Anexar foto (opcional)
-                    </>
-                  )}
-                </button>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={enviandoFoto}
+                    className="flex items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/30 px-4 py-5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 disabled:opacity-60"
+                  >
+                    {enviandoFoto ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" /> Enviando foto...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="size-4" /> Anexar foto
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={abrirCamera}
+                    disabled={enviandoFoto}
+                    className="flex items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/30 px-4 py-5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 disabled:opacity-60"
+                  >
+                    <Camera className="size-4" /> Tirar foto em game
+                  </button>
+                </div>
               )}
             </div>
 
@@ -468,6 +548,63 @@ export function AquaviariosManager({
           </div>
         )}
       </div>
+
+      {/* Modal de captura pela câmera */}
+      {cameraAberta ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tirar foto pela câmera"
+        >
+          <div className="w-full max-w-lg overflow-hidden rounded-lg border border-border bg-background shadow-xl">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h2 className="flex items-center gap-2 font-serif text-base font-semibold">
+                <Camera className="size-4 text-primary" /> Tirar foto em game
+              </h2>
+              <button
+                type="button"
+                onClick={fecharCamera}
+                className="inline-flex size-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-secondary"
+                aria-label="Fechar"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="space-y-3 p-4">
+              {cameraErro ? (
+                <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {cameraErro}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Aponte a câmera para a tela do jogo e enquadre o personagem. Clique em capturar para usar a imagem.
+                </p>
+              )}
+              <div className="overflow-hidden rounded-md border border-border bg-black">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video ref={videoRef} playsInline muted className="aspect-video w-full object-cover" />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={fecharCamera}>
+                  Cancelar
+                </Button>
+                <Button type="button" onClick={capturarFoto} disabled={capturando || Boolean(cameraErro)}>
+                  {capturando ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" /> Capturando...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="size-4" /> Capturar foto
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
