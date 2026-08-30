@@ -317,6 +317,8 @@ async function gerarCardFuncionalMilitar(dados: DadosCard): Promise<Blob> {
   }
 
   // Escreve o valor de um campo sobre o modelo, na posição do rótulo impresso.
+  // Por padrão o valor é alinhado à ESQUERDA, começando exatamente onde o
+  // rótulo começa (ex.: o nome fica sob o "N" de NOME), e uma linha abaixo dele.
   function valor(
     texto: string,
     x: number,
@@ -335,18 +337,18 @@ async function gerarCardFuncionalMilitar(dados: DadosCard): Promise<Blob> {
   }
 
   const campos = dados.campos
-  // NOME (à direita do rótulo "NOME")
-  valor(dados.titular, L * 0.248, A * 0.19, A * 0.036, { max: L * 0.55 })
-  // NR REGISTRO (abaixo do rótulo, no topo direito)
-  valor(acharCampo(campos, "Nº de registro", "NR Registro", "Numero de registro"), L * 0.915, A * 0.255, A * 0.03, { center: true, max: L * 0.2 })
-  // POST / GRAD CAT (à direita do rótulo)
-  valor(acharCampo(campos, "Posto / Graduação / Categoria", "Posto Grad Cat", "Posto"), L * 0.395, A * 0.475, A * 0.032, { max: L * 0.34 })
-  // DATA DE NASCIMENTO (abaixo do rótulo)
-  valor(acharCampo(campos, "Data de nascimento", "Data nascimento"), L * 0.035, A * 0.605, A * 0.032, { max: L * 0.2 })
-  // Linha inferior: NIP, CPF, RIC (abaixo de cada rótulo)
-  valor(acharCampo(campos, "NIP"), L * 0.047, A * 0.72, A * 0.03, { max: L * 0.16 })
-  valor(acharCampo(campos, "CPF"), L * 0.232, A * 0.72, A * 0.03, { max: L * 0.18 })
-  valor(acharCampo(campos, "RIC"), L * 0.435, A * 0.72, A * 0.03, { max: L * 0.2 })
+  // NOME — abaixo do rótulo "NOME", alinhado ao "N"
+  valor(dados.titular, L * 0.166, A * 0.245, A * 0.034, { max: L * 0.56 })
+  // NR REGISTRO — abaixo do rótulo, centralizado sob ele (topo direito)
+  valor(acharCampo(campos, "Nº de registro", "NR Registro", "Numero de registro"), L * 0.915, A * 0.265, A * 0.028, { center: true, max: L * 0.2 })
+  // POST / GRAD CAT — abaixo do rótulo, alinhado ao "P"
+  valor(acharCampo(campos, "Posto / Graduação / Categoria", "Posto Grad Cat", "Posto"), L * 0.232, A * 0.515, A * 0.032, { max: L * 0.5 })
+  // DATA DE NASCIMENTO — abaixo do rótulo, alinhado à esquerda
+  valor(acharCampo(campos, "Data de nascimento", "Data nascimento"), L * 0.03, A * 0.62, A * 0.03, { max: L * 0.2 })
+  // Linha inferior: NIP, CPF, RIC — cada valor abaixo do respectivo rótulo
+  valor(acharCampo(campos, "NIP"), L * 0.04, A * 0.73, A * 0.028, { max: L * 0.16 })
+  valor(acharCampo(campos, "CPF"), L * 0.23, A * 0.73, A * 0.028, { max: L * 0.18 })
+  valor(acharCampo(campos, "RIC"), L * 0.433, A * 0.73, A * 0.028, { max: L * 0.2 })
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Não foi possível gerar o card."))), "image/png")
