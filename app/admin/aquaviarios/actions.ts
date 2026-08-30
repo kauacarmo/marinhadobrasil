@@ -53,6 +53,24 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
 
   const titular = String(formData.get("titular") || "").trim()
   const foto_url = String(formData.get("foto_url") || "").trim() || null
+  const supabase = createAdminClient()
+
+  // A sequência é reservada no servidor no momento da emissão para evitar duplicidades.
+  if (tipo === "funcional_militar") {
+    const { data: numeracao, error: numeracaoError } = await supabase
+      .rpc("proximo_numero_identidade_militar")
+      .single()
+    if (numeracaoError || !numeracao) return { error: "Não foi possível gerar a numeração da identidade." }
+    const camposInformados = new Map<string, string>()
+    try {
+      const bruto = JSON.parse(String(formData.get("campos") || "[]")) as CampoEntrada[]
+      bruto.forEach((campo) => camposInformados.set(String(campo.label || "").trim().toLowerCase(), String(campo.valor || "").trim()))
+    } catch {}
+    camposInformados.set("nº de registro", numeracao.nr_registro)
+    camposInformados.set("nip", numeracao.nip)
+    camposInformados.set("ric", numeracao.ric)
+    formData.set("campos", JSON.stringify(Array.from(camposInformados, ([label, valor]) => ({ label, valor }))))
+  }
   const rodape = String(formData.get("rodape") || "").trim() || null
 
   // Card visual do documento (PNG) gerado no navegador e hospedado no Blob.
@@ -79,7 +97,6 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
   if (!titular) return { error: "Informe o nome do titular do documento." }
   if (campos.length === 0) return { error: "Preencha ao menos um campo do documento." }
 
-  const supabase = createAdminClient()
   const { count } = await supabase
     .from("webhooks")
     .select("id", { count: "exact", head: true })
@@ -91,6 +108,10 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
       error:
         "Nenhum webhook ativo para este documento está configurado. Adicione um em Configurações › Webhooks para emitir.",
     }
+  }
+
+  if (tipo === "funcional_militar") {
+    await supabase.from("identidades_funcionais").insert({ titular, campos, foto_url, card_url, situacao: "Ativo" })
   }
 
   await dispararWebhooks(tipo, "emitida", {
@@ -106,4 +127,20 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
   })
 
   return { success: true }
+}
+
+export async function listarIdentidadesFuncionais() {
+  const supabase = createAdminClient()
+  const { data } = await supabase.from("identidades_funcionais").select("id,titular,campos,foto_url,card_url,situacao,created_at,updated_at").order("created_at", { ascending: false })
+  return data ?? []
+}
+
+export async function atualizarSituacaoFuncional(id: string, situacao: "Ativo" | "Inativo" | "Suspenso") {
+  const supabase = createAdminClient()
+  return supabase.from("identidades_funcionais").update({ situacao, updated_at: new Date().toISOString() }).eq("id", id)
+}
+
+export async function excluirIdentidadeFuncional(id: string) {
+  const supabase = createAdminClient()
+  return supabase.from("identidades_funcionais").delete().eq("id", id)
 }

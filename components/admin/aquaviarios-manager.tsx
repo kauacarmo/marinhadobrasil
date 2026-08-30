@@ -6,6 +6,7 @@ import {
   Ship,
   BookMarked,
   IdCard,
+  Plane,
   Loader2,
   AtSign,
   Send,
@@ -25,14 +26,17 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import type { AdminUser } from "@/lib/types"
+import { MemberMentionInput } from "@/components/admin/member-mention-input"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
-import { emitirDocumentoAquaviario } from "@/app/admin/aquaviarios/actions"
+import { todosOsCargos } from "@/lib/cargos-marinha"
+import { emitirDocumentoAquaviario, atualizarSituacaoFuncional, excluirIdentidadeFuncional } from "@/app/admin/aquaviarios/actions"
 import { gerarCardDocumento, nomeArquivoCard, type DadosCard } from "@/lib/gerar-card-documento"
 
 type Campo = {
   key: string
   label: string
-  tipo: "text" | "select" | "textarea"
+  tipo: "text" | "select" | "textarea" | "date"
   options?: string[]
   placeholder?: string
 }
@@ -54,28 +58,47 @@ const CAMPOS: Record<TipoDocAquaviario, Campo[]> = {
     { key: "numero", label: "Nº da carteira", tipo: "text", placeholder: "ex.: CN-000000" },
     { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
   ],
+  carteira_aerea: [
+    { key: "nome_aeronave", label: "Nome da aeronave", tipo: "text", placeholder: "ex.: Águia Azul" },
+    { key: "tipo_aeronave", label: "Tipo de aeronave", tipo: "select", options: ["Helicóptero", "Avião", "Ultraleve", "Planador", "Drone" ] },
+    { key: "categoria", label: "Categoria", tipo: "select", options: ["Piloto Privado", "Piloto Comercial", "Instrutor de Voo", "Comandante" ] },
+    { key: "registro", label: "Registro aeronáutico", tipo: "text", placeholder: "ex.: BR-000000" },
+    { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
+  ],
   funcional_militar: [
-    { key: "nr_registro", label: "Nº de registro", tipo: "text", placeholder: "ex.: 000000000-0" },
-    { key: "posto", label: "Posto / Graduação / Categoria", tipo: "text", placeholder: "ex.: Primeiro-Tenente" },
-    { key: "data_nascimento", label: "Data de nascimento", tipo: "text", placeholder: "ex.: 01/01/1990" },
-    { key: "nip", label: "NIP", tipo: "text", placeholder: "ex.: 00.0000.00" },
+    { key: "nr_registro", label: "NR Registro (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
+    { key: "posto", label: "Posto / Graduação / Categoria", tipo: "select", options: todosOsCargos },
+    { key: "data_nascimento", label: "Data de nascimento", tipo: "date", placeholder: "DD/MM/AAAA" },
+    { key: "nip", label: "NIP (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
     { key: "cpf", label: "CPF", tipo: "text", placeholder: "ex.: 000.000.000-00" },
-    { key: "ric", label: "RIC", tipo: "text", placeholder: "ex.: 0000000000" },
+    { key: "ric", label: "RIC (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
   ],
 }
 
 const TIPOS: { valor: TipoDocAquaviario; label: string; icon: typeof Ship }[] = [
   { valor: "cir", label: "CIR", icon: BookMarked },
   { valor: "carteira_nautica", label: "Carteira Náutica", icon: Ship },
+  { valor: "carteira_aerea", label: "Carteira Aérea", icon: Plane },
   { valor: "funcional_militar", label: "Funcional Militar", icon: IdCard },
 ]
 
 export function AquaviariosManager({
   webhooks,
+  funcionaisIniciais,
+  tipoInicial = "cir",
+  modo = "aquaviarios",
+  membros = [],
 }: {
   webhooks: { cir: number; carteira_nautica: number; funcional_militar: number }
-}) {
-  const [tipo, setTipo] = useState<TipoDocAquaviario>("cir")
+  membros?: Pick<AdminUser, "id" | "nome" | "usuario">[]
+  funcionaisIniciais: Array<{ id: string; titular: string; campos: { label: string; valor: string }[]; situacao: "Ativo" | "Inativo" | "Suspenso"; created_at: string; card_url: string | null }>
+  tipoInicial?: TipoDocAquaviario
+  modo?: "aquaviarios" | "identidade"
+  }) {
+  const [abaFuncional, setAbaFuncional] = useState<"emissao" | "armazenadas">("emissao")
+  const [funcionais, setFuncionais] = useState(funcionaisIniciais)
+  const tiposVisiveis = modo === "identidade" ? TIPOS.filter((item) => item.valor === "funcional_militar") : TIPOS.filter((item) => item.valor !== "funcional_militar")
+  const [tipo, setTipo] = useState<TipoDocAquaviario>(tipoInicial)
   const [titular, setTitular] = useState("")
   const [valores, setValores] = useState<Record<string, string>>({})
   const [fotoUrl, setFotoUrl] = useState("")
@@ -90,7 +113,7 @@ export function AquaviariosManager({
   const [gerandoCard, setGerandoCard] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Captura de foto pela câmera ("em game": aponta a webcam para a tela do jogo).
+  // Captura da janela/tela do FiveM; câmera permanece como fallback.
   const [cameraAberta, setCameraAberta] = useState(false)
   const [cameraErro, setCameraErro] = useState<string | null>(null)
   const [capturando, setCapturando] = useState(false)
@@ -99,11 +122,19 @@ export function AquaviariosManager({
 
   const temWebhook = webhooks[tipo] > 0
   const campos = CAMPOS[tipo]
+  const camposVisiveis = tipo === "funcional_militar" ? campos.filter((c) => !["nip", "ric", "nr_registro"].includes(c.key)) : campos
 
-  const camposPreenchidos = useMemo(
-    () => campos.map((c) => ({ label: c.label, valor: (valores[c.key] || "").trim() })).filter((c) => c.valor),
-    [campos, valores],
-  )
+  const camposPreenchidos = useMemo(() => {
+    const preenchidos = campos.map((c) => ({ label: c.label, valor: (valores[c.key] || "").trim() })).filter((c) => c.valor)
+    if (tipo === "funcional_militar") {
+      const seed = Math.max(1, Array.from(titular.trim()).reduce((total, caractere) => total + caractere.charCodeAt(0), 0))
+      const seq = String(seed % 9999).padStart(4, "0")
+      preenchidos.push({ label: "NIP", valor: `26.0001.${String((seed % 99) + 1).padStart(2, "0")}` })
+      preenchidos.push({ label: "RIC", valor: `${String(12345678 + (seed % 9999)).padStart(8, "0")}-${seed % 10}` })
+      preenchidos.push({ label: "NR Registro", valor: `MB-CPSP-${seq}` })
+    }
+    return preenchidos
+  }, [campos, valores, tipo, titular])
 
   const dadosCard = useMemo<DadosCard>(
     () => ({
@@ -185,17 +216,27 @@ export function AquaviariosManager({
     setCameraErro(null)
     setCameraAberta(true)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-        audio: false,
-      })
+      // Aguarda o modal montar o elemento <video> antes de anexar o stream.
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      let stream: MediaStream
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "user" },
+          audio: false,
+        })
+      }
       streamRef.current = stream
+      stream.getVideoTracks()[0]?.addEventListener("ended", fecharCamera)
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        videoRef.current.muted = true
         await videoRef.current.play().catch(() => {})
       }
     } catch {
-      setCameraErro("Não foi possível acessar a câmera. Verifique as permissões do navegador.")
+      setCameraAberta(false)
+      setCameraErro("Não foi possível capturar a janela do FiveM. Permita o compartilhamento de tela ou a câmera.")
     }
   }
 
@@ -217,6 +258,28 @@ export function AquaviariosManager({
       const ctx = canvas.getContext("2d")
       if (!ctx) throw new Error("Falha ao capturar a imagem.")
       ctx.drawImage(video, 0, 0)
+      // Usa a API nativa quando disponível para localizar o rosto capturado.
+      const FaceDetectorCtor = (window as Window & { FaceDetector?: new (options?: { fastMode?: boolean; maxDetectedFaces?: number }) => { detect: (source: CanvasImageSource) => Promise<Array<{ boundingBox: DOMRectReadOnly }>> } }).FaceDetector
+      if (FaceDetectorCtor) {
+        try {
+          const detector = new FaceDetectorCtor({ fastMode: true, maxDetectedFaces: 1 })
+          const faces = await detector.detect(canvas)
+          const face = faces[0]?.boundingBox
+          if (face) {
+            ctx.strokeStyle = "#1677ff"
+            ctx.lineWidth = Math.max(4, canvas.width / 180)
+            ctx.strokeRect(face.x, face.y, face.width, face.height)
+          }
+        } catch {
+          // Mantém a captura mesmo quando a API nativa falhar.
+        }
+      } else {
+        // Fallback visual para navegadores sem FaceDetector: demarca a área central.
+        const lado = Math.min(canvas.width, canvas.height) * 0.34
+        ctx.strokeStyle = "#1677ff"
+        ctx.lineWidth = Math.max(4, canvas.width / 180)
+        ctx.strokeRect((canvas.width - lado) / 2, (canvas.height - lado) / 2, lado, lado)
+      }
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"))
       fecharCamera()
       if (blob) {
@@ -294,11 +357,46 @@ export function AquaviariosManager({
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
-      <div className="space-y-5">
+  <div className="mx-auto max-w-6xl">
+  {tipo === "funcional_militar" ? (
+    <div className="mb-5 flex gap-2 rounded-lg border border-border bg-muted/30 p-1">
+      <button type="button" onClick={() => setAbaFuncional("emissao")} className={cn("rounded-md px-4 py-2 text-sm font-medium", abaFuncional === "emissao" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary")}>Emitir identidade</button>
+      <button type="button" onClick={() => setAbaFuncional("armazenadas")} className={cn("rounded-md px-4 py-2 text-sm font-medium", abaFuncional === "armazenadas" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary")}>Funcionais armazenadas ({funcionais.length})</button>
+    </div>
+  ) : null}
+  {tipo === "funcional_militar" && abaFuncional === "armazenadas" ? (
+    <Card className="mb-6">
+      <CardHeader><CardTitle>Identidades funcionais</CardTitle><CardDescription>Consulte, altere a situação ou exclua documentos emitidos.</CardDescription></CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {funcionais.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma funcional armazenada.</p> : funcionais.map((item) => (
+          <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
+            <div><p className="font-medium">{item.titular}</p><p className="text-xs text-muted-foreground">Emitida em {new Date(item.created_at).toLocaleDateString("pt-BR")}</p></div>
+            <div className="flex items-center gap-2">
+              <select aria-label={`Situação de ${item.titular}`} value={item.situacao} onChange={(e) => { const situacao = e.target.value as "Ativo" | "Inativo" | "Suspenso"; startTransition(async () => { await atualizarSituacaoFuncional(item.id, situacao); setFuncionais((lista) => lista.map((x) => x.id === item.id ? { ...x, situacao } : x)) }) }} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option>Ativo</option><option>Inativo</option><option>Suspenso</option></select>
+              <Button type="button" variant="outline" size="sm" onClick={() => {
+                setAbaFuncional("emissao")
+                setTipo("funcional_militar")
+                setTitular(item.titular)
+                const proximosValores: Record<string, string> = {}
+                item.campos.forEach((campo) => {
+                  const chave = campo.label.toLowerCase().replace(" (automático)", "")
+                  if (!["nip", "ric", "nr registro", "nº de registro"].includes(chave)) proximosValores[chave === "posto / graduação / categoria" ? "posto" : chave.replaceAll(" ", "_")] = campo.valor
+                })
+                setValores(proximosValores)
+              }}>Editar</Button>
+              {item.card_url ? <a href={item.card_url} target="_blank" rel="noreferrer" className="text-sm text-primary underline">Ver card</a> : null}
+              <Button type="button" variant="destructive" size="sm" onClick={() => startTransition(async () => { await excluirIdentidadeFuncional(item.id); setFuncionais((lista) => lista.filter((x) => x.id !== item.id)) })}>Excluir</Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  ) : null}
+  <div className={cn("grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]", tipo === "funcional_militar" && abaFuncional === "armazenadas" && "hidden")}>
+  <div className="space-y-5">
         {/* Seletor de documento */}
         <div className="inline-flex rounded-lg border border-border bg-muted/30 p-1">
-          {TIPOS.map((t) => {
+          {tiposVisiveis.filter((t) => !(modo === "identidade" && t.valor === "funcional_militar")).map((t) => {
             const ativo = tipo === t.valor
             const Icon = t.icon
             return (
@@ -359,7 +457,7 @@ export function AquaviariosManager({
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {campos.map((c) => (
+              {camposVisiveis.map((c) => (
                 <div key={c.key} className={cn("space-y-2", c.tipo === "textarea" && "sm:col-span-2")}>
                   <Label htmlFor={c.key}>{c.label}</Label>
                   {c.tipo === "select" ? (
@@ -376,6 +474,16 @@ export function AquaviariosManager({
                         </option>
                       ))}
                     </select>
+                  ) : c.tipo === "date" ? (
+                    <Input
+                      id={c.key}
+                      type="date"
+                      value={(() => { const [day, month, year] = (valores[c.key] || "").split("/"); return year && month && day ? `${year}-${month}-${day}` : "" })()}
+                      onChange={(e) => {
+                        const [year, month, day] = e.target.value.split("-")
+                        setValores((v) => ({ ...v, [c.key]: year && month && day ? `${day}/${month}/${year}` : "" }))
+                      }}
+                    />
                   ) : c.tipo === "textarea" ? (
                     <Textarea
                       id={c.key}
@@ -389,6 +497,7 @@ export function AquaviariosManager({
                       id={c.key}
                       placeholder={c.placeholder}
                       value={valores[c.key] || ""}
+                      disabled={tipo === "funcional_militar" && ["nip", "ric", "nr_registro"].includes(c.key)}
                       onChange={(e) => setValores((v) => ({ ...v, [c.key]: e.target.value }))}
                     />
                   )}
@@ -450,7 +559,7 @@ export function AquaviariosManager({
                     disabled={enviandoFoto}
                     className="flex items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/30 px-4 py-5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 disabled:opacity-60"
                   >
-                    <Camera className="size-4" /> Tirar foto em game
+                    <Camera className="size-4" /> Capturar tela do FiveM
                   </button>
                 </div>
               )}
@@ -461,13 +570,7 @@ export function AquaviariosManager({
                 <Label htmlFor="mencao_pessoa">Mencionar o titular</Label>
                 <div className="relative">
                   <UserRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="mencao_pessoa"
-                    placeholder="ID do Discord ou @usuario"
-                    className="pl-9"
-                    value={mencaoPessoa}
-                    onChange={(e) => setMencaoPessoa(e.target.value)}
-                  />
+                  <MemberMentionInput value={mencaoPessoa} onChange={setMencaoPessoa} users={membros} placeholder="Digite @ para procurar o titular" />
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Cole o ID do usuário para notificá-lo diretamente na mensagem.
@@ -531,13 +634,15 @@ export function AquaviariosManager({
           {gerandoCard ? <Loader2 className="size-3.5 animate-spin" /> : null}
         </div>
         {cardPreview ? (
-          <div className="space-y-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={cardPreview || "/placeholder.svg"}
-              alt={`Card do documento ${DOC_AQUAVIARIO_LABEL[tipo]} de ${titular || "titular"}`}
-              className="w-full rounded-lg border border-border shadow-sm"
-            />
+<div className="flex flex-col gap-3">
+<div className="aspect-[608/392] overflow-hidden rounded-lg border border-border bg-transparent leading-none">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={cardPreview || "/placeholder.svg"}
+                alt={`Card do documento ${DOC_AQUAVIARIO_LABEL[tipo]} de ${titular || "titular"}`}
+                className="block size-full object-cover object-top align-top"
+              />
+            </div>
             <Button type="button" variant="outline" size="sm" className="w-full" onClick={baixarCard}>
               <Download className="size-4" /> Baixar PNG
             </Button>
@@ -578,12 +683,12 @@ export function AquaviariosManager({
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Aponte a câmera para a tela do jogo e enquadre o personagem. Clique em capturar para usar a imagem.
+                  Selecione a janela do FiveM no compartilhamento de tela. Se o navegador bloquear, a câmera será usada como fallback.
                 </p>
               )}
-              <div className="overflow-hidden rounded-md border border-border bg-black">
+<div className="aspect-video overflow-hidden rounded-md border border-border bg-muted leading-none">
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video ref={videoRef} playsInline muted className="aspect-video w-full object-cover" />
+                <video ref={videoRef} playsInline muted className="block size-full bg-muted object-contain" />
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={fecharCamera}>
@@ -606,5 +711,6 @@ export function AquaviariosManager({
         </div>
       ) : null}
     </div>
+  </div>
   )
 }

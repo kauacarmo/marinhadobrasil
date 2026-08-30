@@ -16,6 +16,7 @@ import {
   Gavel,
   ClipboardList,
   Anchor,
+  IdCard,
   Settings,
   LogOut,
 } from "lucide-react"
@@ -30,7 +31,8 @@ const navItems = [
   { href: "/admin/publicacoes", label: "Resultados e Editais", icon: ClipboardList },
   { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
-  { href: "/admin/aquaviarios", label: "Aquaviários", icon: Anchor },
+  { href: "/admin/aquaviarios", label: "Documentos", icon: Anchor },
+  { href: "/admin/aquaviarios/identidade-funcional", label: "Funcionais", icon: IdCard },
   { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
   { href: "/admin/diario-naval", label: "Diário Naval", icon: Radio },
   { href: "/admin/portarias", label: "Portarias", icon: ScrollText },
@@ -70,7 +72,9 @@ export function AdminSidebar({ papel = "" }: { papel?: string }) {
           const active =
             item.href === "/admin"
               ? pathname === "/admin"
-              : pathname.startsWith(item.href)
+              : item.href === "/admin/aquaviarios"
+                ? pathname === item.href
+                : pathname.startsWith(item.href)
           const Icon = item.icon
           return (
             <Link

@@ -8,7 +8,7 @@
 export type CampoCard = { label: string; valor: string }
 
 export type DadosCard = {
-  tipo: "cir" | "carteira_nautica" | "funcional_militar"
+  tipo: "cir" | "carteira_nautica" | "carteira_aerea" | "funcional_militar"
   titulo: string
   titular: string
   campos: CampoCard[]
@@ -22,6 +22,7 @@ const ESCALA = 2
 // Paleta do documento: cor institucional + dourado de destaque + neutros.
 const COR_CIR = "#1e3a5f"
 const COR_NAUTICA = "#0f5132"
+const COR_AEREA = "#174ea6"
 const DOURADO = "#c8a95a"
 const PAPEL = "#ffffff"
 const TEXTO = "#14181f"
@@ -76,7 +77,7 @@ export async function gerarCardDocumento(dados: DadosCard): Promise<Blob> {
   // A Identidade Funcional Militar tem layout próprio (formato horizontal de cédula).
   if (dados.tipo === "funcional_militar") return gerarCardFuncionalMilitar(dados)
 
-  const cor = dados.tipo === "carteira_nautica" ? COR_NAUTICA : COR_CIR
+  const cor = dados.tipo === "carteira_aerea" ? COR_AEREA : dados.tipo === "carteira_nautica" ? COR_NAUTICA : COR_CIR
   const campos = dados.campos.filter((c) => c.label.trim() && c.valor.trim())
   const foto = dados.fotoUrl ? await carregarImagem(dados.fotoUrl) : null
 
@@ -335,12 +336,24 @@ async function gerarCardFuncionalMilitar(dados: DadosCard): Promise<Blob> {
   }
 
   const campos = dados.campos
-  // NOME (à direita do rótulo "NOME")
-  valor(dados.titular, L * 0.248, A * 0.19, A * 0.036, { max: L * 0.55 })
+  // NOME (abaixo do título impresso)
+  valor(dados.titular, L * 0.17, A * 0.235, A * 0.032, { max: L * 0.48 })
+  // Assinatura manuscrita derivada do nome completo.
+  const assinatura = dados.titular.trim()
+  if (assinatura) {
+    ctx!.save()
+    ctx!.fillStyle = NAVY
+    ctx!.globalAlpha = 0.85
+    ctx!.font = `italic ${Math.max(18, A * 0.036)}px ${FONTE_SERIF}`
+    ctx!.textAlign = "center"
+    ctx!.fillText(assinatura, L * 0.5, A * 0.90)
+    ctx!.restore()
+    ctx!.textAlign = "left"
+  }
   // NR REGISTRO (abaixo do rótulo, no topo direito)
   valor(acharCampo(campos, "Nº de registro", "NR Registro", "Numero de registro"), L * 0.915, A * 0.255, A * 0.03, { center: true, max: L * 0.2 })
-  // POST / GRAD CAT (à direita do rótulo)
-  valor(acharCampo(campos, "Posto / Graduação / Categoria", "Posto Grad Cat", "Posto"), L * 0.395, A * 0.475, A * 0.032, { max: L * 0.34 })
+  // POST / GRAD CAT: o valor fica logo abaixo do título impresso.
+  valor(acharCampo(campos, "Posto / Graduação / Categoria", "Posto Grad Cat", "Posto", "Graduação"), L * 0.23, A * 0.495, A * 0.032, { max: L * 0.42 })
   // DATA DE NASCIMENTO (abaixo do rótulo)
   valor(acharCampo(campos, "Data de nascimento", "Data nascimento"), L * 0.035, A * 0.605, A * 0.032, { max: L * 0.2 })
   // Linha inferior: NIP, CPF, RIC (abaixo de cada rótulo)
