@@ -129,6 +129,24 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
   return { success: true }
 }
 
+export async function enviarAvisoDocumento(tipo: TipoDocAquaviario, titular: string) {
+  const supabase = createAdminClient()
+  const { data: webhooks } = await supabase.from("webhooks").select("url").eq("aba", tipo).eq("ativo", true)
+  const aviso = `AVISO: DOCUMENTO DE ${DOC_AQUAVIARIO_LABEL[tipo].toUpperCase()} PARA ${titular.trim().toUpperCase()}`
+  await Promise.allSettled((webhooks ?? []).map(async ({ url }) => {
+    const destino = `${url.trim()}${url.includes("?") ? "&" : "?"}wait=true`
+    const resposta = await fetch(destino, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: aviso, allowed_mentions: { parse: [] } }) })
+    if (!resposta.ok) return
+    const mensagem = await resposta.json().catch(() => null)
+    const partes = url.match(/discord(?:app)?\.com\/api\/webhooks\/(\d+)\/([^/?]+)/i)
+    if (mensagem?.id && partes) {
+      await new Promise((resolve) => setTimeout(resolve, 40000))
+      await fetch(`https://discord.com/api/webhooks/${partes[1]}/${partes[2]}/messages/${mensagem.id}`, { method: "DELETE" })
+    }
+  }))
+  return { success: true }
+}
+
 export async function listarIdentidadesFuncionais() {
   const supabase = createAdminClient()
   const { data } = await supabase.from("identidades_funcionais").select("id,titular,campos,foto_url,card_url,situacao,created_at,updated_at").order("created_at", { ascending: false })

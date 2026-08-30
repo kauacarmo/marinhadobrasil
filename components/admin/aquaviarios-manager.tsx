@@ -30,7 +30,7 @@ import type { AdminUser } from "@/lib/types"
 import { MemberMentionInput } from "@/components/admin/member-mention-input"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
 import { todosOsCargos } from "@/lib/cargos-marinha"
-import { emitirDocumentoAquaviario, atualizarSituacaoFuncional, excluirIdentidadeFuncional } from "@/app/admin/aquaviarios/actions"
+import { emitirDocumentoAquaviario, atualizarSituacaoFuncional, excluirIdentidadeFuncional, enviarAvisoDocumento } from "@/app/admin/aquaviarios/actions"
 import { gerarCardDocumento, nomeArquivoCard, type DadosCard } from "@/lib/gerar-card-documento"
 
 type Campo = {
@@ -313,6 +313,15 @@ export function AquaviariosManager({
     } catch {
       setErro("Não foi possível gerar o card para download.")
     }
+  }
+
+  function enviarAviso() {
+    setErro(null)
+    startTransition(async () => {
+      const resultado = await enviarAvisoDocumento(tipo, titular)
+      if (resultado?.error) setErro(resultado.error)
+      else flash("Aviso enviado ao canal e será removido em 40 segundos.")
+    })
   }
 
   function emitir() {
@@ -620,9 +629,12 @@ export function AquaviariosManager({
                     <Send className="size-4" /> Emitir e enviar
                   </>
                 )}
-              </Button>
-            </div>
-          </CardContent>
+  </Button>
+  <Button type="button" variant="outline" onClick={enviarAviso} disabled={isPending || !titular.trim() || !temWebhook}>
+    <TriangleAlert className="size-4" /> Enviar aviso
+  </Button>
+  </div>
+  </CardContent>
         </Card>
       </div>
 
