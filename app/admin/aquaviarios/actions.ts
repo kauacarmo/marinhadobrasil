@@ -144,7 +144,11 @@ export async function enviarAvisoDocumento(tipo: TipoDocAquaviario, titular: str
   await Promise.allSettled((webhooks ?? []).map(async ({ url }) => {
     const destino = `${url.trim()}${url.includes("?") ? "&" : "?"}wait=true`
     const formulario = new FormData()
-    formulario.append("payload_json", JSON.stringify({ content: aviso, allowed_mentions: { parse: [] } }))
+    const cargosAviso = "<@&1380774161915449354>\n<@&1534292004685615194>"
+    formulario.append("payload_json", JSON.stringify({
+      content: `${aviso}\n\n${cargosAviso}`,
+      allowed_mentions: { parse: [], roles: ["1380774161915449354", "1534292004685615194"] },
+    }))
     formulario.append("files[0]", new Blob([imagemAviso], { type: "image/png" }), "aviso-do-sistema.png")
     const resposta = await fetch(destino, { method: "POST", body: formulario })
     if (!resposta.ok) return
