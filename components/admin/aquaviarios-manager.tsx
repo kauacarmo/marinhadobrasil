@@ -90,7 +90,7 @@ export function AquaviariosManager({
   const [gerandoCard, setGerandoCard] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Captura de foto pela câmera ("em game": aponta a webcam para a tela do jogo).
+  // Captura da janela/tela do FiveM; câmera permanece como fallback.
   const [cameraAberta, setCameraAberta] = useState(false)
   const [cameraErro, setCameraErro] = useState<string | null>(null)
   const [capturando, setCapturando] = useState(false)
@@ -99,6 +99,7 @@ export function AquaviariosManager({
 
   const temWebhook = webhooks[tipo] > 0
   const campos = CAMPOS[tipo]
+  const camposVisiveis = tipo === "funcional_militar" ? campos.filter((c) => !["nip", "ric", "nr_registro"].includes(c.key)) : campos
 
   const camposPreenchidos = useMemo(
     () => campos.map((c) => ({ label: c.label, valor: (valores[c.key] || "").trim() })).filter((c) => c.valor),
@@ -185,17 +186,25 @@ export function AquaviariosManager({
     setCameraErro(null)
     setCameraAberta(true)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-        audio: false,
-      })
+      let stream: MediaStream
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: "user" },
+          audio: false,
+        })
+      }
       streamRef.current = stream
+      stream.getVideoTracks()[0]?.addEventListener("ended", fecharCamera)
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        videoRef.current.muted = true
         await videoRef.current.play().catch(() => {})
       }
     } catch {
-      setCameraErro("Não foi possível acessar a câmera. Verifique as permissões do navegador.")
+      setCameraAberta(false)
+      setCameraErro("Não foi possível capturar a janela do FiveM. Permita o compartilhamento de tela ou a câmera.")
     }
   }
 
@@ -230,8 +239,14 @@ export function AquaviariosManager({
             ctx.strokeRect(face.x, face.y, face.width, face.height)
           }
         } catch {
-          // Navegadores sem suporte de detecção continuam permitindo a captura.
+          // Mantém a captura mesmo quando a API nativa falhar.
         }
+      } else {
+        // Fallback visual para navegadores sem FaceDetector: demarca a área central.
+        const lado = Math.min(canvas.width, canvas.height) * 0.34
+        ctx.strokeStyle = "#1677ff"
+        ctx.lineWidth = Math.max(4, canvas.width / 180)
+        ctx.strokeRect((canvas.width - lado) / 2, (canvas.height - lado) / 2, lado, lado)
       }
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"))
       fecharCamera()
@@ -375,7 +390,7 @@ export function AquaviariosManager({
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {campos.map((c) => (
+              {camposVisiveis.map((c) => (
                 <div key={c.key} className={cn("space-y-2", c.tipo === "textarea" && "sm:col-span-2")}>
                   <Label htmlFor={c.key}>{c.label}</Label>
                   {c.tipo === "select" ? (
@@ -467,7 +482,7 @@ export function AquaviariosManager({
                     disabled={enviandoFoto}
                     className="flex items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/30 px-4 py-5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 disabled:opacity-60"
                   >
-                    <Camera className="size-4" /> Tirar foto em game
+                    <Camera className="size-4" /> Capturar tela do FiveM
                   </button>
                 </div>
               )}
@@ -595,12 +610,12 @@ export function AquaviariosManager({
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Aponte a câmera para a tela do jogo e enquadre o personagem. Clique em capturar para usar a imagem.
+                  Selecione a janela do FiveM no compartilhamento de tela. Se o navegador bloquear, a câmera será usada como fallback.
                 </p>
               )}
               <div className="overflow-hidden rounded-md border border-border bg-black">
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video ref={videoRef} playsInline muted className="aspect-video w-full object-cover" />
+                <video ref={videoRef} playsInline muted className="aspect-video w-full bg-muted object-contain" />
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={fecharCamera}>
