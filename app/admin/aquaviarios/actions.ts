@@ -1,6 +1,9 @@
 "use server"
 
 import { createAdminClient } from "@/lib/supabase/admin"
+import sharp from "sharp"
+import { readFile } from "node:fs/promises"
+import path from "node:path"
 import { dispararWebhooks } from "@/lib/webhooks"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
 
@@ -133,9 +136,17 @@ export async function enviarAvisoDocumento(tipo: TipoDocAquaviario, titular: str
   const supabase = createAdminClient()
   const { data: webhooks } = await supabase.from("webhooks").select("url").eq("aba", tipo).eq("ativo", true)
   const aviso = `⚠️ ${(avisoPersonalizado?.trim() || `AVISO: DOCUMENTO DE ${DOC_AQUAVIARIO_LABEL[tipo].toUpperCase()} PARA ${titular.trim().toUpperCase()}`).toUpperCase()}`
+  const escaparXml = (texto: string) => texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;")
+  const linhas = aviso.match(/.{1,78}(?:\\s|$)/g)?.map((linha) => linha.trim()).filter(Boolean) ?? [aviso]
+  const textoSvg = linhas.map((linha, indice) => `<text x="50%" y="${350 + indice * 58}" text-anchor="middle" fill="#f7c85b" font-family="Arial, sans-serif" font-size="38" font-weight="700">${escaparXml(linha)}</text>`).join("")
+  const modelo = await readFile(path.join(process.cwd(), "public", "aviso-sistema.png"))
+  const imagemAviso = await sharp(modelo).composite([{ input: Buffer.from(`<svg width="2160" height="724"><rect x="220" y="270" width="1720" height="300" fill="#041326" fill-opacity=".72"/>${textoSvg}</svg>`), top: 0, left: 0 }]).png().toBuffer()
   await Promise.allSettled((webhooks ?? []).map(async ({ url }) => {
     const destino = `${url.trim()}${url.includes("?") ? "&" : "?"}wait=true`
-    const resposta = await fetch(destino, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: aviso, allowed_mentions: { parse: [] } }) })
+    const formulario = new FormData()
+    formulario.append("payload_json", JSON.stringify({ content: aviso, allowed_mentions: { parse: [] } }))
+    formulario.append("files[0]", new Blob([imagemAviso], { type: "image/png" }), "aviso-do-sistema.png")
+    const resposta = await fetch(destino, { method: "POST", body: formulario })
     if (!resposta.ok) return
     const mensagem = await resposta.json().catch(() => null)
     const partes = url.match(/discord(?:app)?\.com\/api\/webhooks\/(\d+)\/([^/?]+)/i)
