@@ -26,6 +26,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import type { AdminUser } from "@/lib/types"
+import { MemberMentionInput } from "@/components/admin/member-mention-input"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
 import { todosOsCargos } from "@/lib/cargos-marinha"
 import { emitirDocumentoAquaviario, atualizarSituacaoFuncional, excluirIdentidadeFuncional } from "@/app/admin/aquaviarios/actions"
@@ -85,8 +87,10 @@ export function AquaviariosManager({
   funcionaisIniciais,
   tipoInicial = "cir",
   modo = "aquaviarios",
+  membros = [],
 }: {
   webhooks: { cir: number; carteira_nautica: number; funcional_militar: number }
+  membros?: Pick<AdminUser, "id" | "nome" | "usuario">[]
   funcionaisIniciais: Array<{ id: string; titular: string; campos: { label: string; valor: string }[]; situacao: "Ativo" | "Inativo" | "Suspenso"; created_at: string; card_url: string | null }>
   tipoInicial?: TipoDocAquaviario
   modo?: "aquaviarios" | "identidade"
@@ -566,13 +570,7 @@ export function AquaviariosManager({
                 <Label htmlFor="mencao_pessoa">Mencionar o titular</Label>
                 <div className="relative">
                   <UserRound className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="mencao_pessoa"
-                    placeholder="ID do Discord ou @usuario"
-                    className="pl-9"
-                    value={mencaoPessoa}
-                    onChange={(e) => setMencaoPessoa(e.target.value)}
-                  />
+                  <MemberMentionInput value={mencaoPessoa} onChange={setMencaoPessoa} users={membros} placeholder="Digite @ para procurar o titular" />
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Cole o ID do usuário para notificá-lo diretamente na mensagem.
