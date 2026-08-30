@@ -335,12 +335,24 @@ async function gerarCardFuncionalMilitar(dados: DadosCard): Promise<Blob> {
   }
 
   const campos = dados.campos
-  // NOME (à direita do rótulo "NOME")
-  valor(dados.titular, L * 0.248, A * 0.19, A * 0.036, { max: L * 0.55 })
+  // NOME (abaixo do título impresso)
+  valor(dados.titular, L * 0.17, A * 0.235, A * 0.032, { max: L * 0.48 })
+  // Assinatura manuscrita derivada do nome completo.
+  const assinatura = dados.titular.trim()
+  if (assinatura) {
+    ctx!.save()
+    ctx!.fillStyle = NAVY
+    ctx!.globalAlpha = 0.85
+    ctx!.font = `italic ${Math.max(18, A * 0.036)}px ${FONTE_SERIF}`
+    ctx!.textAlign = "center"
+    ctx!.fillText(assinatura, L * 0.5, A * 0.945)
+    ctx!.restore()
+    ctx!.textAlign = "left"
+  }
   // NR REGISTRO (abaixo do rótulo, no topo direito)
   valor(acharCampo(campos, "Nº de registro", "NR Registro", "Numero de registro"), L * 0.915, A * 0.255, A * 0.03, { center: true, max: L * 0.2 })
   // POST / GRAD CAT (à direita do rótulo)
-  valor(acharCampo(campos, "Posto / Graduação / Categoria", "Posto Grad Cat", "Posto"), L * 0.395, A * 0.475, A * 0.032, { max: L * 0.34 })
+  valor(acharCampo(campos, "Posto / Graduação / Categoria", "Posto Grad Cat", "Posto", "Graduação"), L * 0.395, A * 0.515, A * 0.032, { max: L * 0.34 })
   // DATA DE NASCIMENTO (abaixo do rótulo)
   valor(acharCampo(campos, "Data de nascimento", "Data nascimento"), L * 0.035, A * 0.605, A * 0.032, { max: L * 0.2 })
   // Linha inferior: NIP, CPF, RIC (abaixo de cada rótulo)

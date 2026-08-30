@@ -55,12 +55,12 @@ const CAMPOS: Record<TipoDocAquaviario, Campo[]> = {
     { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
   ],
   funcional_militar: [
-    { key: "nr_registro", label: "Nº de registro", tipo: "text", placeholder: "ex.: 000000000-0" },
+    { key: "nr_registro", label: "NR Registro (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
     { key: "posto", label: "Posto / Graduação / Categoria", tipo: "text", placeholder: "ex.: Primeiro-Tenente" },
     { key: "data_nascimento", label: "Data de nascimento", tipo: "text", placeholder: "ex.: 01/01/1990" },
-    { key: "nip", label: "NIP", tipo: "text", placeholder: "ex.: 00.0000.00" },
+    { key: "nip", label: "NIP (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
     { key: "cpf", label: "CPF", tipo: "text", placeholder: "ex.: 000.000.000-00" },
-    { key: "ric", label: "RIC", tipo: "text", placeholder: "ex.: 0000000000" },
+    { key: "ric", label: "RIC (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
   ],
 }
 
@@ -217,6 +217,22 @@ export function AquaviariosManager({
       const ctx = canvas.getContext("2d")
       if (!ctx) throw new Error("Falha ao capturar a imagem.")
       ctx.drawImage(video, 0, 0)
+      // Usa a API nativa quando disponível para localizar o rosto capturado.
+      const FaceDetectorCtor = (window as Window & { FaceDetector?: new (options?: { fastMode?: boolean; maxDetectedFaces?: number }) => { detect: (source: CanvasImageSource) => Promise<Array<{ boundingBox: DOMRectReadOnly }>> } }).FaceDetector
+      if (FaceDetectorCtor) {
+        try {
+          const detector = new FaceDetectorCtor({ fastMode: true, maxDetectedFaces: 1 })
+          const faces = await detector.detect(canvas)
+          const face = faces[0]?.boundingBox
+          if (face) {
+            ctx.strokeStyle = "#1677ff"
+            ctx.lineWidth = Math.max(4, canvas.width / 180)
+            ctx.strokeRect(face.x, face.y, face.width, face.height)
+          }
+        } catch {
+          // Navegadores sem suporte de detecção continuam permitindo a captura.
+        }
+      }
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"))
       fecharCamera()
       if (blob) {
@@ -389,6 +405,7 @@ export function AquaviariosManager({
                       id={c.key}
                       placeholder={c.placeholder}
                       value={valores[c.key] || ""}
+                      disabled={tipo === "funcional_militar" && ["nip", "ric", "nr_registro"].includes(c.key)}
                       onChange={(e) => setValores((v) => ({ ...v, [c.key]: e.target.value }))}
                     />
                   )}
