@@ -1,11 +1,11 @@
 import { AdminTopbar } from "@/components/admin/admin-topbar"
 import { AquaviariosManager } from "@/components/admin/aquaviarios-manager"
-import { contarWebhooksAquaviarios } from "./actions"
+import { contarWebhooksAquaviarios, listarIdentidadesFuncionais } from "./actions"
 
 export const dynamic = "force-dynamic"
 
 export default async function AdminAquaviariosPage() {
-  const webhooks = await contarWebhooksAquaviarios()
+  const [webhooks, funcionais] = await Promise.all([contarWebhooksAquaviarios(), listarIdentidadesFuncionais()])
 
   return (
     <>
@@ -14,7 +14,7 @@ export default async function AdminAquaviariosPage() {
         descricao="Emita a CIR, a Carteira Náutica de Embarcação e a Identidade Funcional Militar e envie ao canal via webhook."
       />
       <div className="p-6">
-        <AquaviariosManager webhooks={webhooks} />
+        <AquaviariosManager webhooks={webhooks} funcionaisIniciais={funcionais} />
       </div>
     </>
   )

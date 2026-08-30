@@ -110,6 +110,10 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
     }
   }
 
+  if (tipo === "funcional_militar") {
+    await supabase.from("identidades_funcionais").insert({ titular, campos, foto_url, card_url, situacao: "Ativo" })
+  }
+
   await dispararWebhooks(tipo, "emitida", {
     documento: tipo,
     titulo: DOC_AQUAVIARIO_LABEL[tipo],
@@ -123,4 +127,20 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
   })
 
   return { success: true }
+}
+
+export async function listarIdentidadesFuncionais() {
+  const supabase = createAdminClient()
+  const { data } = await supabase.from("identidades_funcionais").select("id,titular,campos,foto_url,card_url,situacao,created_at,updated_at").order("created_at", { ascending: false })
+  return data ?? []
+}
+
+export async function atualizarSituacaoFuncional(id: string, situacao: "Ativo" | "Inativo" | "Suspenso") {
+  const supabase = createAdminClient()
+  return supabase.from("identidades_funcionais").update({ situacao, updated_at: new Date().toISOString() }).eq("id", id)
+}
+
+export async function excluirIdentidadeFuncional(id: string) {
+  const supabase = createAdminClient()
+  return supabase.from("identidades_funcionais").delete().eq("id", id)
 }

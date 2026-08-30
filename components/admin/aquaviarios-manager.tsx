@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { cn } from "@/lib/utils"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
 import { todosOsCargos } from "@/lib/cargos-marinha"
-import { emitirDocumentoAquaviario } from "@/app/admin/aquaviarios/actions"
+import { emitirDocumentoAquaviario, atualizarSituacaoFuncional, excluirIdentidadeFuncional } from "@/app/admin/aquaviarios/actions"
 import { gerarCardDocumento, nomeArquivoCard, type DadosCard } from "@/lib/gerar-card-documento"
 
 type Campo = {
@@ -75,7 +75,10 @@ export function AquaviariosManager({
   webhooks,
 }: {
   webhooks: { cir: number; carteira_nautica: number; funcional_militar: number }
+  funcionaisIniciais: Array<{ id: string; titular: string; campos: { label: string; valor: string }[]; situacao: "Ativo" | "Inativo" | "Suspenso"; created_at: string; card_url: string | null }>
 }) {
+  const [abaFuncional, setAbaFuncional] = useState<"emissao" | "armazenadas">("emissao")
+  const [funcionais, setFuncionais] = useState(funcionaisIniciais)
   const [tipo, setTipo] = useState<TipoDocAquaviario>("cir")
   const [titular, setTitular] = useState("")
   const [valores, setValores] = useState<Record<string, string>>({})
@@ -102,10 +105,17 @@ export function AquaviariosManager({
   const campos = CAMPOS[tipo]
   const camposVisiveis = tipo === "funcional_militar" ? campos.filter((c) => !["nip", "ric", "nr_registro"].includes(c.key)) : campos
 
-  const camposPreenchidos = useMemo(
-    () => campos.map((c) => ({ label: c.label, valor: (valores[c.key] || "").trim() })).filter((c) => c.valor),
-    [campos, valores],
-  )
+  const camposPreenchidos = useMemo(() => {
+    const preenchidos = campos.map((c) => ({ label: c.label, valor: (valores[c.key] || "").trim() })).filter((c) => c.valor)
+    if (tipo === "funcional_militar") {
+      const seed = Math.max(1, Array.from(titular.trim()).reduce((total, caractere) => total + caractere.charCodeAt(0), 0))
+      const seq = String(seed % 9999).padStart(4, "0")
+      preenchidos.push({ label: "NIP", valor: `26.0001.${String((seed % 99) + 1).padStart(2, "0")}` })
+      preenchidos.push({ label: "RIC", valor: `${String(12345678 + (seed % 9999)).padStart(8, "0")}-${seed % 10}` })
+      preenchidos.push({ label: "NR Registro", valor: `MB-CPSP-${seq}` })
+    }
+    return preenchidos
+  }, [campos, valores, tipo, titular])
 
   const dadosCard = useMemo<DadosCard>(
     () => ({
@@ -328,8 +338,43 @@ export function AquaviariosManager({
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
-      <div className="space-y-5">
+  <div className="mx-auto max-w-6xl">
+  {tipo === "funcional_militar" ? (
+    <div className="mb-5 flex gap-2 rounded-lg border border-border bg-muted/30 p-1">
+      <button type="button" onClick={() => setAbaFuncional("emissao")} className={cn("rounded-md px-4 py-2 text-sm font-medium", abaFuncional === "emissao" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary")}>Emitir identidade</button>
+      <button type="button" onClick={() => setAbaFuncional("armazenadas")} className={cn("rounded-md px-4 py-2 text-sm font-medium", abaFuncional === "armazenadas" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary")}>Funcionais armazenadas ({funcionais.length})</button>
+    </div>
+  ) : null}
+  {tipo === "funcional_militar" && abaFuncional === "armazenadas" ? (
+    <Card className="mb-6">
+      <CardHeader><CardTitle>Identidades funcionais</CardTitle><CardDescription>Consulte, altere a situação ou exclua documentos emitidos.</CardDescription></CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {funcionais.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma funcional armazenada.</p> : funcionais.map((item) => (
+          <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
+            <div><p className="font-medium">{item.titular}</p><p className="text-xs text-muted-foreground">Emitida em {new Date(item.created_at).toLocaleDateString("pt-BR")}</p></div>
+            <div className="flex items-center gap-2">
+              <select aria-label={`Situação de ${item.titular}`} value={item.situacao} onChange={(e) => { const situacao = e.target.value as "Ativo" | "Inativo" | "Suspenso"; startTransition(async () => { await atualizarSituacaoFuncional(item.id, situacao); setFuncionais((lista) => lista.map((x) => x.id === item.id ? { ...x, situacao } : x)) }) }} className="h-9 rounded-md border border-input bg-background px-2 text-sm"><option>Ativo</option><option>Inativo</option><option>Suspenso</option></select>
+              <Button type="button" variant="outline" size="sm" onClick={() => {
+                setAbaFuncional("emissao")
+                setTipo("funcional_militar")
+                setTitular(item.titular)
+                const proximosValores: Record<string, string> = {}
+                item.campos.forEach((campo) => {
+                  const chave = campo.label.toLowerCase().replace(" (automático)", "")
+                  if (!["nip", "ric", "nr registro", "nº de registro"].includes(chave)) proximosValores[chave === "posto / graduação / categoria" ? "posto" : chave.replaceAll(" ", "_")] = campo.valor
+                })
+                setValores(proximosValores)
+              }}>Editar</Button>
+              {item.card_url ? <a href={item.card_url} target="_blank" rel="noreferrer" className="text-sm text-primary underline">Ver card</a> : null}
+              <Button type="button" variant="destructive" size="sm" onClick={() => startTransition(async () => { await excluirIdentidadeFuncional(item.id); setFuncionais((lista) => lista.filter((x) => x.id !== item.id)) })}>Excluir</Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  ) : null}
+  <div className={cn("grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]", tipo === "funcional_militar" && abaFuncional === "armazenadas" && "hidden")}>
+  <div className="space-y-5">
         {/* Seletor de documento */}
         <div className="inline-flex rounded-lg border border-border bg-muted/30 p-1">
           {TIPOS.map((t) => {
@@ -653,5 +698,6 @@ export function AquaviariosManager({
         </div>
       ) : null}
     </div>
+  </div>
   )
 }
