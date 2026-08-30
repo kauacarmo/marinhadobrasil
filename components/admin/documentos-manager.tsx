@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react"
 import Image from "next/image"
 import { Search, Plus, Trash2, Eye, FileText, Webhook, Copy, Check, Printer } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -67,6 +68,7 @@ export function DocumentosManager({
 
   const [novo, setNovo] = useState(false)
   const [vendo, setVendo] = useState<Documento | null>(null)
+  const [selecionado, setSelecionado] = useState<Documento | null>(documentos[0] ?? null)
   const [confirmar, setConfirmar] = useState<Documento | null>(null)
   const [openWebhook, setOpenWebhook] = useState(false)
   const [copiado, setCopiado] = useState(false)
@@ -140,6 +142,7 @@ export function DocumentosManager({
         </div>
       </div>
 
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)]">
       <div className="overflow-hidden rounded-lg border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
@@ -154,7 +157,7 @@ export function DocumentosManager({
           </thead>
           <tbody className="divide-y divide-border">
             {filtrados.map((d) => (
-              <tr key={d.id} className="hover:bg-muted/30">
+              <tr key={d.id} onClick={() => setSelecionado(d)} className={cn("cursor-pointer hover:bg-muted/30", selecionado?.id === d.id && "bg-muted/50")}>
                 <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{d.numero ?? "—"}</td>
                 <td className="px-4 py-3 font-medium text-foreground">{d.titulo}</td>
                 <td className="px-4 py-3">
@@ -192,6 +195,31 @@ export function DocumentosManager({
             ) : null}
           </tbody>
         </table>
+      </div>
+
+      <aside className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+        <div className="border-b border-border px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Preview oficial</p>
+          <h2 className="mt-1 font-serif text-lg font-semibold">{selecionado?.titulo ?? "Selecione um documento"}</h2>
+        </div>
+        {selecionado ? (
+          <article className="m-4 min-h-[34rem] bg-background px-6 py-7 text-foreground shadow-inner ring-1 ring-border/60">
+            <header className="flex flex-col items-center border-b border-foreground/80 pb-4 text-center">
+              <Image src="/marinha-ultrawide.png" alt="Marinha do Brasil" width={1600} height={430} className="h-auto w-48 max-w-full" />
+              <p className="mt-3 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Centro de Comunicação Social da Marinha</p>
+              <p className="mt-2 text-[10px] font-bold uppercase">{singular}</p>
+            </header>
+            <div className="mt-5 flex justify-end text-[10px] leading-relaxed text-muted-foreground">Brasília — DF<br />{formatDataExtenso(selecionado.created_at)}</div>
+            <div className="mt-5">
+              {selecionado.numero ? <p className="text-center text-xs font-semibold uppercase">{singular} nº {selecionado.numero}</p> : null}
+              <h3 className="mt-2 text-center font-serif text-base font-bold">{selecionado.titulo}</h3>
+              {selecionado.conteudo ? <p className="mt-5 whitespace-pre-wrap text-justify text-xs leading-6">{selecionado.conteudo}</p> : null}
+              {selecionado.pdf_url ? <a href={selecionado.pdf_url} target="_blank" rel="noreferrer" className="mt-5 block text-xs font-semibold text-primary underline">Abrir PDF do documento</a> : null}
+            </div>
+            <footer className="mt-12 border-t border-foreground/80 pt-3 text-center text-[9px] text-muted-foreground">Marinha do Brasil · Protegendo nossas riquezas, cuidando da nossa gente<br />www.marinha.mil.br</footer>
+          </article>
+        ) : <p className="p-6 text-sm text-muted-foreground">Clique em um documento para visualizar o modelo.</p>}
+      </aside>
       </div>
 
       {/* Novo documento */}
