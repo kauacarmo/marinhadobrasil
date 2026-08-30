@@ -579,7 +579,7 @@ export function AquaviariosManager({
             <img
               src={cardPreview || "/placeholder.svg"}
               alt={`Card do documento ${DOC_AQUAVIARIO_LABEL[tipo]} de ${titular || "titular"}`}
-              className="w-full rounded-lg border border-border shadow-sm"
+              className="block w-full rounded-lg border border-border shadow-sm"
             />
             <Button type="button" variant="outline" size="sm" className="w-full" onClick={baixarCard}>
               <Download className="size-4" /> Baixar PNG
@@ -624,9 +624,9 @@ export function AquaviariosManager({
                   Selecione a janela do FiveM no compartilhamento de tela. Se o navegador bloquear, a câmera será usada como fallback.
                 </p>
               )}
-<div className="overflow-hidden rounded-md border border-border bg-muted">
-  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video ref={videoRef} playsInline muted className="aspect-video w-full bg-muted object-contain" />
+<div className="overflow-hidden rounded-md border border-border bg-muted leading-none">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video ref={videoRef} playsInline muted className="block aspect-video w-full bg-muted object-contain" />
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={fecharCamera}>
