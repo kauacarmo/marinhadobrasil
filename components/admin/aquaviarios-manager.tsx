@@ -66,12 +66,12 @@ const CAMPOS: Record<TipoDocAquaviario, Campo[]> = {
     { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
   ],
   funcional_militar: [
-    { key: "nr_registro", label: "NR Registro (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
-    { key: "posto", label: "Posto / Graduação / Categoria", tipo: "select", options: todosOsCargos },
-    { key: "data_nascimento", label: "Data de nascimento", tipo: "date", placeholder: "DD/MM/AAAA" },
-    { key: "nip", label: "NIP (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
-    { key: "cpf", label: "CPF", tipo: "text", placeholder: "ex.: 000.000.000-00" },
-    { key: "ric", label: "RIC (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
+    { key: "nr_registro", label: "NR REGISTRO (AUTOMÁTICO)", tipo: "text", placeholder: "GERADO AO EMITIR" },
+    { key: "posto", label: "POSTO / GRADUAÇÃO / CATEGORIA", tipo: "select", options: todosOsCargos },
+    { key: "data_nascimento", label: "DATA DE NASCIMENTO", tipo: "date", placeholder: "DD/MM/AAAA" },
+    { key: "nip", label: "NIP (AUTOMÁTICO)", tipo: "text", placeholder: "GERADO AO EMITIR" },
+    { key: "cpf", label: "CPF", tipo: "text", placeholder: "EX.: 000.000.000-00" },
+    { key: "ric", label: "RIC (AUTOMÁTICO)", tipo: "text", placeholder: "GERADO AO EMITIR" },
   ],
 }
 
