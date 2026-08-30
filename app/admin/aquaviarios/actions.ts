@@ -138,9 +138,9 @@ export async function enviarAvisoDocumento(tipo: TipoDocAquaviario, titular: str
   const aviso = `⚠️ ${(avisoPersonalizado?.trim() || `AVISO: DOCUMENTO DE ${DOC_AQUAVIARIO_LABEL[tipo].toUpperCase()} PARA ${titular.trim().toUpperCase()}`).toUpperCase()}`
   const escaparXml = (texto: string) => texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;")
   const linhas = aviso.match(/.{1,78}(?:\\s|$)/g)?.map((linha) => linha.trim()).filter(Boolean) ?? [aviso]
-  const textoSvg = linhas.map((linha, indice) => `<text x="50%" y="${350 + indice * 58}" text-anchor="middle" fill="#f7c85b" font-family="Arial, sans-serif" font-size="38" font-weight="700">${escaparXml(linha)}</text>`).join("")
-  const modelo = await readFile(path.join(process.cwd(), "public", "aviso-sistema.png"))
-  const imagemAviso = await sharp(modelo).composite([{ input: Buffer.from(`<svg width="2160" height="724"><rect x="220" y="270" width="1720" height="300" fill="#041326" fill-opacity=".72"/>${textoSvg}</svg>`), top: 0, left: 0 }]).png().toBuffer()
+  const textoSvg = linhas.map((linha, indice) => `<text x="50%" y="${125 + indice * 30}" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="22" font-weight="700">${escaparXml(linha)}</text>`).join("")
+  const modelo = await readFile(path.join(process.cwd(), "public", "aviso-do-sistema.gif"))
+  const imagemAviso = await sharp(modelo, { animated: false }).composite([{ input: Buffer.from(`<svg width="980" height="176"><rect x="245" y="100" width="490" height="62" fill="#020b1c" fill-opacity=".78" rx="8"/>${textoSvg}</svg>`), top: 0, left: 0 }]).png().toBuffer()
   await Promise.allSettled((webhooks ?? []).map(async ({ url }) => {
     const destino = `${url.trim()}${url.includes("?") ? "&" : "?"}wait=true`
     const formulario = new FormData()
