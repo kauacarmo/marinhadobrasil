@@ -8,6 +8,7 @@ import { listWebhooks } from "@/app/admin/configuracoes/actions"
 import { ConfiguracoesAdmin } from "@/components/admin/configuracoes-admin"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
+import { ehAlmirantado } from "@/lib/cargos-marinha"
 
 function Campo({ label, defaultValue }: { label: string; defaultValue: string }) {
   return (
@@ -22,7 +23,7 @@ export default async function AdminConfiguracoesPage() {
   const sessao = (await cookies()).get("cpsp_sessao")?.value
   let papel = ""
   try { papel = sessao ? JSON.parse(sessao).papel ?? "" : "" } catch { papel = "" }
-  if (papel !== "admin") redirect("/admin")
+  if (!ehAlmirantado(papel)) redirect("/admin")
 
   const webhooks = await listWebhooks()
 
