@@ -73,13 +73,16 @@ const TIPOS: { valor: TipoDocAquaviario; label: string; icon: typeof Ship }[] = 
 
 export function AquaviariosManager({
   webhooks,
+  funcionaisIniciais,
+  tipoInicial = "cir",
 }: {
   webhooks: { cir: number; carteira_nautica: number; funcional_militar: number }
   funcionaisIniciais: Array<{ id: string; titular: string; campos: { label: string; valor: string }[]; situacao: "Ativo" | "Inativo" | "Suspenso"; created_at: string; card_url: string | null }>
+  tipoInicial?: TipoDocAquaviario
 }) {
   const [abaFuncional, setAbaFuncional] = useState<"emissao" | "armazenadas">("emissao")
   const [funcionais, setFuncionais] = useState(funcionaisIniciais)
-  const [tipo, setTipo] = useState<TipoDocAquaviario>("cir")
+  const [tipo, setTipo] = useState<TipoDocAquaviario>(tipoInicial)
   const [titular, setTitular] = useState("")
   const [valores, setValores] = useState<Record<string, string>>({})
   const [fotoUrl, setFotoUrl] = useState("")
