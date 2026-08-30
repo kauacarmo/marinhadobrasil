@@ -33,6 +33,9 @@ export async function criarDocumento(tipo: TipoDocumento, formData: FormData) {
   const numero = String(formData.get("numero") || "").trim() || null
   const conteudo = String(formData.get("conteudo") || "").trim() || null
   const pdfUrl = String(formData.get("pdf_url") || "").trim() || null
+  const localEmissao = String(formData.get("local_emissao") || "São Paulo - SP").trim()
+  const dataEmissao = String(formData.get("data_emissao") || "").trim()
+  const conteudoComMetadados = `${localEmissao}\n${dataEmissao ? `Data de emissão: ${dataEmissao}` : ""}\n\n${conteudo || ""}`.trim()
 
   if (!titulo) return { error: "Informe o título do documento." }
   if (!conteudo && !pdfUrl) return { error: "Informe o texto ou o link do PDF." }
@@ -40,7 +43,7 @@ export async function criarDocumento(tipo: TipoDocumento, formData: FormData) {
   const supabase = createAdminClient()
   const { error } = await supabase
     .from("documents")
-    .insert({ tipo, titulo, numero, conteudo, pdf_url: pdfUrl, origem: "manual" })
+    .insert({ tipo, titulo, numero, conteudo: conteudoComMetadados, pdf_url: pdfUrl, origem: "manual" })
   if (error) return { error: error.message }
 
   revalidatePath(PATHS[tipo])

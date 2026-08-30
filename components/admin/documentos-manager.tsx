@@ -203,13 +203,13 @@ export function DocumentosManager({
           <h2 className="mt-1 font-serif text-lg font-semibold">{selecionado?.titulo ?? "Selecione um documento"}</h2>
         </div>
         {selecionado ? (
-          <article className="m-4 min-h-[34rem] bg-background px-6 py-7 text-foreground shadow-inner ring-1 ring-border/60">
+          <article className="mx-auto my-4 aspect-[210/297] w-[calc(100%-2rem)] max-w-[30rem] overflow-hidden bg-white px-7 py-8 text-slate-900 shadow-inner ring-1 ring-slate-200">
             <header className="flex flex-col items-center border-b border-foreground/80 pb-4 text-center">
               <Image src="/marinha-ultrawide.png" alt="Marinha do Brasil" width={1600} height={430} className="h-auto w-48 max-w-full" />
               <p className="mt-3 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Centro de Comunicação Social da Marinha</p>
               <p className="mt-2 text-[10px] font-bold uppercase">{singular}</p>
             </header>
-            <div className="mt-5 flex justify-end text-[10px] leading-relaxed text-muted-foreground">Brasília — DF<br />{formatDataExtenso(selecionado.created_at)}</div>
+            <div className="mt-5 flex justify-end text-[10px] leading-relaxed text-muted-foreground">São Paulo - SP<br />Data de emissão: {formatDataExtenso(selecionado.created_at)}</div>
             <div className="mt-5">
               {selecionado.numero ? <p className="text-center text-xs font-semibold uppercase">{singular} nº {selecionado.numero}</p> : null}
               <h3 className="mt-2 text-center font-serif text-base font-bold">{selecionado.titulo}</h3>
@@ -232,6 +232,14 @@ export function DocumentosManager({
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="local_emissao">Local de emissão</Label>
+                  <Input id="local_emissao" name="local_emissao" defaultValue="São Paulo - SP" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="data_emissao">Data de emissão</Label>
+                  <Input id="data_emissao" name="data_emissao" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="numero">Número</Label>
                   <Input id="numero" name="numero" placeholder="123/2026" />
@@ -271,7 +279,7 @@ export function DocumentosManager({
           </DialogHeader>
           {vendo ? (
             <div className="max-h-[85vh] overflow-y-auto">
-              <article id="doc-print" className="bg-white px-10 py-10 text-slate-900">
+              <article id="doc-print" className="mx-auto aspect-[210/297] w-full max-w-[794px] overflow-hidden bg-white px-16 py-14 text-slate-900">
                 {/* Cabeçalho: logo padrão centralizado */}
                 <header className="flex flex-col items-center border-b-2 border-slate-800 pb-6 text-center">
                   <Image
