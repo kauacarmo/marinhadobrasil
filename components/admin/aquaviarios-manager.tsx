@@ -383,7 +383,7 @@ export function AquaviariosManager({
   <div className="space-y-5">
         {/* Seletor de documento */}
         <div className="inline-flex rounded-lg border border-border bg-muted/30 p-1">
-          {tiposVisiveis.map((t) => {
+          {tiposVisiveis.filter((t) => !(modo === "identidade" && t.valor === "funcional_militar")).map((t) => {
             const ativo = tipo === t.valor
             const Icon = t.icon
             return (
