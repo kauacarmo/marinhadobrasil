@@ -109,6 +109,7 @@ export function AquaviariosManager({
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [aviso, setAviso] = useState("")
   const [cardPreview, setCardPreview] = useState("")
   const [gerandoCard, setGerandoCard] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -318,9 +319,9 @@ export function AquaviariosManager({
   function enviarAviso() {
     setErro(null)
     startTransition(async () => {
-      const resultado = await enviarAvisoDocumento(tipo, titular)
+      const resultado = await enviarAvisoDocumento(tipo, titular, aviso)
       if (resultado?.error) setErro(resultado.error)
-      else flash("Aviso enviado ao canal e será removido em 40 segundos.")
+      else { setAviso(""); flash("Aviso enviado ao canal e será removido em 40 segundos.") }
     })
   }
 
@@ -376,7 +377,14 @@ export function AquaviariosManager({
   {tipo === "funcional_militar" && abaFuncional === "armazenadas" ? (
     <Card className="mb-6">
       <CardHeader><CardTitle>Identidades funcionais</CardTitle><CardDescription>Consulte, altere a situação ou exclua documentos emitidos.</CardDescription></CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+          <Label htmlFor="aviso-funcional">Aviso para o canal</Label>
+          <Textarea id="aviso-funcional" value={aviso} onChange={(event) => setAviso(event.target.value)} placeholder="Digite o aviso que será exibido no canal..." rows={3} />
+          <Button type="button" variant="outline" onClick={enviarAviso} disabled={isPending || !aviso.trim() || !temWebhook} className="w-fit">
+            <TriangleAlert className="size-4" /> Enviar aviso
+          </Button>
+        </div>
         {funcionais.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma funcional armazenada.</p> : funcionais.map((item) => (
           <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
             <div><p className="font-medium">{item.titular}</p><p className="text-xs text-muted-foreground">Emitida em {new Date(item.created_at).toLocaleDateString("pt-BR")}</p></div>
@@ -629,9 +637,6 @@ export function AquaviariosManager({
                     <Send className="size-4" /> Emitir e enviar
                   </>
                 )}
-  </Button>
-  <Button type="button" variant="outline" onClick={enviarAviso} disabled={isPending || !titular.trim() || !temWebhook}>
-    <TriangleAlert className="size-4" /> Enviar aviso
   </Button>
   </div>
   </CardContent>
