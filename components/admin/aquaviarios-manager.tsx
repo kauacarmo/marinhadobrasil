@@ -75,13 +75,16 @@ export function AquaviariosManager({
   webhooks,
   funcionaisIniciais,
   tipoInicial = "cir",
+  modo = "aquaviarios",
 }: {
   webhooks: { cir: number; carteira_nautica: number; funcional_militar: number }
   funcionaisIniciais: Array<{ id: string; titular: string; campos: { label: string; valor: string }[]; situacao: "Ativo" | "Inativo" | "Suspenso"; created_at: string; card_url: string | null }>
   tipoInicial?: TipoDocAquaviario
-}) {
+  modo?: "aquaviarios" | "identidade"
+  }) {
   const [abaFuncional, setAbaFuncional] = useState<"emissao" | "armazenadas">("emissao")
   const [funcionais, setFuncionais] = useState(funcionaisIniciais)
+  const tiposVisiveis = modo === "identidade" ? TIPOS.filter((item) => item.valor === "funcional_militar") : TIPOS.filter((item) => item.valor !== "funcional_militar")
   const [tipo, setTipo] = useState<TipoDocAquaviario>(tipoInicial)
   const [titular, setTitular] = useState("")
   const [valores, setValores] = useState<Record<string, string>>({})
@@ -380,7 +383,7 @@ export function AquaviariosManager({
   <div className="space-y-5">
         {/* Seletor de documento */}
         <div className="inline-flex rounded-lg border border-border bg-muted/30 p-1">
-          {TIPOS.map((t) => {
+          {tiposVisiveis.map((t) => {
             const ativo = tipo === t.valor
             const Icon = t.icon
             return (

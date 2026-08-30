@@ -18,6 +18,7 @@ export default async function AdminIdentidadeFuncionalPage() {
           webhooks={webhooks}
           funcionaisIniciais={funcionais}
           tipoInicial="funcional_militar"
+          modo="identidade"
         />
       </div>
     </>
