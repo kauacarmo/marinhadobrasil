@@ -10,8 +10,8 @@ export default async function AdminAquaviariosPage() {
   return (
     <>
       <AdminTopbar
-        titulo="Aquaviários"
-        descricao="Emita a CIR, a Carteira Náutica de Embarcação e a Identidade Funcional Militar e envie ao canal via webhook."
+        titulo="Documentos"
+        descricao="Emita a CIR, a Carteira Náutica, a Carteira Aérea e acompanhe suas identidades funcionais."
       />
       <div className="p-6">
         <AquaviariosManager webhooks={webhooks} funcionaisIniciais={funcionais} />

@@ -8,7 +8,7 @@
 export type CampoCard = { label: string; valor: string }
 
 export type DadosCard = {
-  tipo: "cir" | "carteira_nautica" | "funcional_militar"
+  tipo: "cir" | "carteira_nautica" | "carteira_aerea" | "funcional_militar"
   titulo: string
   titular: string
   campos: CampoCard[]
@@ -22,6 +22,7 @@ const ESCALA = 2
 // Paleta do documento: cor institucional + dourado de destaque + neutros.
 const COR_CIR = "#1e3a5f"
 const COR_NAUTICA = "#0f5132"
+const COR_AEREA = "#174ea6"
 const DOURADO = "#c8a95a"
 const PAPEL = "#ffffff"
 const TEXTO = "#14181f"
@@ -76,7 +77,7 @@ export async function gerarCardDocumento(dados: DadosCard): Promise<Blob> {
   // A Identidade Funcional Militar tem layout próprio (formato horizontal de cédula).
   if (dados.tipo === "funcional_militar") return gerarCardFuncionalMilitar(dados)
 
-  const cor = dados.tipo === "carteira_nautica" ? COR_NAUTICA : COR_CIR
+  const cor = dados.tipo === "carteira_aerea" ? COR_AEREA : dados.tipo === "carteira_nautica" ? COR_NAUTICA : COR_CIR
   const campos = dados.campos.filter((c) => c.label.trim() && c.valor.trim())
   const foto = dados.fotoUrl ? await carregarImagem(dados.fotoUrl) : null
 

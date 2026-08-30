@@ -6,6 +6,7 @@ import {
   Ship,
   BookMarked,
   IdCard,
+  Plane,
   Loader2,
   AtSign,
   Send,
@@ -55,6 +56,13 @@ const CAMPOS: Record<TipoDocAquaviario, Campo[]> = {
     { key: "numero", label: "Nº da carteira", tipo: "text", placeholder: "ex.: CN-000000" },
     { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
   ],
+  carteira_aerea: [
+    { key: "nome_aeronave", label: "Nome da aeronave", tipo: "text", placeholder: "ex.: Águia Azul" },
+    { key: "tipo_aeronave", label: "Tipo de aeronave", tipo: "select", options: ["Helicóptero", "Avião", "Ultraleve", "Planador", "Drone" ] },
+    { key: "categoria", label: "Categoria", tipo: "select", options: ["Piloto Privado", "Piloto Comercial", "Instrutor de Voo", "Comandante" ] },
+    { key: "registro", label: "Registro aeronáutico", tipo: "text", placeholder: "ex.: BR-000000" },
+    { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
+  ],
   funcional_militar: [
     { key: "nr_registro", label: "NR Registro (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
     { key: "posto", label: "Posto / Graduação / Categoria", tipo: "select", options: todosOsCargos },
@@ -68,6 +76,7 @@ const CAMPOS: Record<TipoDocAquaviario, Campo[]> = {
 const TIPOS: { valor: TipoDocAquaviario; label: string; icon: typeof Ship }[] = [
   { valor: "cir", label: "CIR", icon: BookMarked },
   { valor: "carteira_nautica", label: "Carteira Náutica", icon: Ship },
+  { valor: "carteira_aerea", label: "Carteira Aérea", icon: Plane },
   { valor: "funcional_militar", label: "Funcional Militar", icon: IdCard },
 ]
 
