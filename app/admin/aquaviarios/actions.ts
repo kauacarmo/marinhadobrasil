@@ -135,7 +135,7 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
 export async function enviarAvisoDocumento(tipo: TipoDocAquaviario, titular: string, avisoPersonalizado?: string) {
   const supabase = createAdminClient()
   const { data: webhooks } = await supabase.from("webhooks").select("url").eq("aba", tipo).eq("ativo", true)
-  const aviso = `⚠️ ${(avisoPersonalizado?.trim() || `AVISO: DOCUMENTO DE ${DOC_AQUAVIARIO_LABEL[tipo].toUpperCase()} PARA ${titular.trim().toUpperCase()}`).toUpperCase()}`
+  const aviso = (avisoPersonalizado?.trim() || `AVISO: DOCUMENTO DE ${DOC_AQUAVIARIO_LABEL[tipo].toUpperCase()} PARA ${titular.trim().toUpperCase()}`).toUpperCase()
   const escaparXml = (texto: string) => texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;")
   const linhas = aviso.match(/.{1,78}(?:\\s|$)/g)?.map((linha) => linha.trim()).filter(Boolean) ?? [aviso]
   const textoSvg = linhas.map((linha, indice) => `<text x="50%" y="${125 + indice * 30}" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="22" font-weight="700">${escaparXml(linha)}</text>`).join("")
