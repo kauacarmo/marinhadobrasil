@@ -5,6 +5,9 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { WebhooksManager } from "@/components/admin/webhooks-manager"
 import { listWebhooks } from "@/app/admin/configuracoes/actions"
+import { ConfiguracoesAdmin } from "@/components/admin/configuracoes-admin"
+import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 
 function Campo({ label, defaultValue }: { label: string; defaultValue: string }) {
   return (
@@ -16,6 +19,11 @@ function Campo({ label, defaultValue }: { label: string; defaultValue: string })
 }
 
 export default async function AdminConfiguracoesPage() {
+  const sessao = (await cookies()).get("cpsp_sessao")?.value
+  let papel = ""
+  try { papel = sessao ? JSON.parse(sessao).papel ?? "" : "" } catch { papel = "" }
+  if (papel !== "admin") redirect("/admin")
+
   const webhooks = await listWebhooks()
 
   return (
@@ -27,6 +35,8 @@ export default async function AdminConfiguracoesPage() {
 
       <div className="max-w-3xl space-y-6 p-6">
         <WebhooksManager webhooks={webhooks} />
+
+        <ConfiguracoesAdmin webhooks={webhooks} />
 
         <Separator />
 
