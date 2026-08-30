@@ -353,7 +353,7 @@ async function gerarCardFuncionalMilitar(dados: DadosCard): Promise<Blob> {
   // NR REGISTRO (abaixo do rótulo, no topo direito)
   valor(acharCampo(campos, "Nº de registro", "NR Registro", "Numero de registro"), L * 0.915, A * 0.255, A * 0.03, { center: true, max: L * 0.2 })
   // POST / GRAD CAT: o valor fica logo abaixo do título impresso.
-  valor(acharCampo(campos, "Posto / Graduação / Categoria", "Posto Grad Cat", "Posto", "Graduação"), L * 0.23, A * 0.515, A * 0.032, { max: L * 0.42 })
+  valor(acharCampo(campos, "Posto / Graduação / Categoria", "Posto Grad Cat", "Posto", "Graduação"), L * 0.23, A * 0.505, A * 0.032, { max: L * 0.42 })
   // DATA DE NASCIMENTO (abaixo do rótulo)
   valor(acharCampo(campos, "Data de nascimento", "Data nascimento"), L * 0.035, A * 0.605, A * 0.032, { max: L * 0.2 })
   // Linha inferior: NIP, CPF, RIC (abaixo de cada rótulo)
