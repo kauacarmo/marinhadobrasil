@@ -577,12 +577,12 @@ export function AquaviariosManager({
         </div>
         {cardPreview ? (
 <div className="flex flex-col gap-3">
-            <div className="overflow-hidden rounded-lg border border-border bg-transparent leading-none">
+<div className="aspect-[608/392] overflow-hidden rounded-lg border border-border bg-transparent leading-none">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={cardPreview || "/placeholder.svg"}
                 alt={`Card do documento ${DOC_AQUAVIARIO_LABEL[tipo]} de ${titular || "titular"}`}
-                className="block h-auto w-full align-top"
+                className="block size-full object-cover object-top align-top"
               />
             </div>
             <Button type="button" variant="outline" size="sm" className="w-full" onClick={baixarCard}>
@@ -628,9 +628,9 @@ export function AquaviariosManager({
                   Selecione a janela do FiveM no compartilhamento de tela. Se o navegador bloquear, a câmera será usada como fallback.
                 </p>
               )}
-<div className="overflow-hidden rounded-md border border-border bg-muted leading-none">
+<div className="aspect-video overflow-hidden rounded-md border border-border bg-muted leading-none">
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video ref={videoRef} playsInline muted className="block aspect-video w-full bg-muted object-contain" />
+                <video ref={videoRef} playsInline muted className="block size-full bg-muted object-contain" />
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={fecharCamera}>
