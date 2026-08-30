@@ -55,13 +55,26 @@ const CAMPOS: Record<TipoDocAquaviario, Campo[]> = {
     { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
   ],
   funcional_militar: [
-    { key: "nr_registro", label: "Nº de registro", tipo: "text", placeholder: "ex.: 000000000-0" },
     { key: "posto", label: "Posto / Graduação / Categoria", tipo: "text", placeholder: "ex.: Primeiro-Tenente" },
     { key: "data_nascimento", label: "Data de nascimento", tipo: "text", placeholder: "ex.: 01/01/1990" },
-    { key: "nip", label: "NIP", tipo: "text", placeholder: "ex.: 00.0000.00" },
     { key: "cpf", label: "CPF", tipo: "text", placeholder: "ex.: 000.000.000-00" },
-    { key: "ric", label: "RIC", tipo: "text", placeholder: "ex.: 0000000000" },
   ],
+}
+
+// Campos gerados automaticamente da Identidade Funcional Militar.
+// Modelos: NIP 26.0001.01 · NR Registro MB-CPSP-0001 · RIC 12.345.678-9
+type DadosMilitares = { nr_registro: string; nip: string; ric: string }
+
+function gerarDadosMilitares(): DadosMilitares {
+  const n = (len: number) =>
+    Math.floor(Math.random() * Math.pow(10, len))
+      .toString()
+      .padStart(len, "0")
+  return {
+    nr_registro: `MB-CPSP-${n(4)}`,
+    nip: `26.${n(4)}.${n(2)}`,
+    ric: `${n(2)}.${n(3)}.${n(3)}-${n(1)}`,
+  }
 }
 
 const TIPOS: { valor: TipoDocAquaviario; label: string; icon: typeof Ship }[] = [
@@ -90,6 +103,9 @@ export function AquaviariosManager({
   const [gerandoCard, setGerandoCard] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // Dados gerados automaticamente (somente para a Identidade Funcional Militar).
+  const [dadosMil, setDadosMil] = useState<DadosMilitares>(() => gerarDadosMilitares())
+
   // Captura de foto pela câmera ("em game": aponta a webcam para a tela do jogo).
   const [cameraAberta, setCameraAberta] = useState(false)
   const [cameraErro, setCameraErro] = useState<string | null>(null)
@@ -100,10 +116,19 @@ export function AquaviariosManager({
   const temWebhook = webhooks[tipo] > 0
   const campos = CAMPOS[tipo]
 
-  const camposPreenchidos = useMemo(
-    () => campos.map((c) => ({ label: c.label, valor: (valores[c.key] || "").trim() })).filter((c) => c.valor),
-    [campos, valores],
-  )
+  const camposPreenchidos = useMemo(() => {
+    const manuais = campos
+      .map((c) => ({ label: c.label, valor: (valores[c.key] || "").trim() }))
+      .filter((c) => c.valor)
+    if (tipo !== "funcional_militar") return manuais
+    // Insere os campos automáticos (NR Registro, NIP e RIC) já formatados.
+    return [
+      { label: "Nº de registro", valor: dadosMil.nr_registro },
+      ...manuais,
+      { label: "NIP", valor: dadosMil.nip },
+      { label: "RIC", valor: dadosMil.ric },
+    ]
+  }, [campos, valores, tipo, dadosMil])
 
   const dadosCard = useMemo<DadosCard>(
     () => ({
@@ -157,6 +182,8 @@ export function AquaviariosManager({
     setValores({})
     setFotoUrl("")
     setErro(null)
+    // Cada nova identidade militar recebe registro, NIP e RIC próprios.
+    if (t === "funcional_militar") setDadosMil(gerarDadosMilitares())
   }
 
   function flash(t: string) {
@@ -181,21 +208,31 @@ export function AquaviariosManager({
     }
   }
 
+  // Abre a captura da TELA (ex.: a janela do FiveM). O navegador pede ao
+  // usuário qual janela/tela compartilhar; escolha a janela do jogo.
   async function abrirCamera() {
     setCameraErro(null)
     setCameraAberta(true)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 30 } },
         audio: false,
       })
       streamRef.current = stream
+      // Se o usuário parar o compartilhamento pela barra do navegador, fecha o modal.
+      stream.getVideoTracks()[0]?.addEventListener("ended", fecharCamera)
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         await videoRef.current.play().catch(() => {})
       }
-    } catch {
-      setCameraErro("Não foi possível acessar a câmera. Verifique as permissões do navegador.")
+    } catch (e) {
+      // Erro comum: permissão negada ou display-capture bloqueado no preview.
+      const nome = e instanceof Error ? e.name : ""
+      setCameraErro(
+        nome === "NotAllowedError"
+          ? "Compartilhamento de tela cancelado ou bloqueado. Permita a captura e escolha a janela do FiveM."
+          : "Não foi possível capturar a tela. Abra o app publicado e permita o compartilhamento de tela.",
+      )
     }
   }
 
@@ -206,21 +243,74 @@ export function AquaviariosManager({
     setCameraAberta(false)
   }
 
+  // Recorta o rosto do militar do quadro capturado. Usa a API nativa
+  // FaceDetector quando disponível; caso contrário, recorta o centro.
+  async function recortarRosto(fonte: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+    const sw = fonte.width
+    const sh = fonte.height
+    // Proporção da foto no modelo (retrato ~205x264).
+    const ratio = 205 / 264
+    let box = { x: sw * 0.3, y: sh * 0.12, width: sw * 0.4, height: sh * 0.76 }
+
+    const FD = (window as unknown as { FaceDetector?: new (o?: unknown) => { detect: (s: CanvasImageSource) => Promise<Array<{ boundingBox: DOMRectReadOnly }>> } }).FaceDetector
+    if (FD) {
+      try {
+        const detector = new FD({ fastMode: false, maxDetectedFaces: 1 })
+        const faces = await detector.detect(fonte)
+        const b = faces?.[0]?.boundingBox
+        if (b) {
+          // Expande em torno do rosto para incluir cabeça e ombros.
+          const padX = b.width * 0.6
+          const padTop = b.height * 0.85
+          const padBot = b.height * 1.0
+          box = { x: b.x - padX, y: b.y - padTop, width: b.width + padX * 2, height: b.height + padTop + padBot }
+        }
+      } catch {
+        // Detector indisponível/falhou: mantém o recorte central.
+      }
+    }
+
+    // Ajusta o recorte à proporção da foto do documento.
+    let { x, y, width, height } = box
+    if (width / height > ratio) {
+      const nova = height * ratio
+      x += (width - nova) / 2
+      width = nova
+    } else {
+      const nova = width / ratio
+      y += (height - nova) / 2
+      height = nova
+    }
+    x = Math.max(0, Math.min(x, sw))
+    y = Math.max(0, Math.min(y, sh))
+    width = Math.min(width, sw - x)
+    height = Math.min(height, sh - y)
+
+    const saida = document.createElement("canvas")
+    saida.width = 600
+    saida.height = Math.round(600 / ratio)
+    const octx = saida.getContext("2d")
+    if (octx) octx.drawImage(fonte, x, y, width, height, 0, 0, saida.width, saida.height)
+    return saida
+  }
+
   async function capturarFoto() {
     const video = videoRef.current
     if (!video || !video.videoWidth) return
     setCapturando(true)
     try {
-      const canvas = document.createElement("canvas")
-      canvas.width = video.videoWidth
-      canvas.height = video.videoHeight
-      const ctx = canvas.getContext("2d")
+      const quadro = document.createElement("canvas")
+      quadro.width = video.videoWidth
+      quadro.height = video.videoHeight
+      const ctx = quadro.getContext("2d")
       if (!ctx) throw new Error("Falha ao capturar a imagem.")
       ctx.drawImage(video, 0, 0)
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"))
+      // Detecta o rosto e recorta para o formato da identidade.
+      const rosto = await recortarRosto(quadro)
+      const blob = await new Promise<Blob | null>((resolve) => rosto.toBlob(resolve, "image/png"))
       fecharCamera()
       if (blob) {
-        const file = new File([blob], `foto-${Date.now()}.png`, { type: "image/png" })
+        const file = new File([blob], `militar-${Date.now()}.png`, { type: "image/png" })
         await enviarFoto(file)
       }
     } catch {
@@ -230,7 +320,7 @@ export function AquaviariosManager({
     }
   }
 
-  // Encerra a câmera se o componente for desmontado com ela aberta.
+  // Encerra a captura de tela se o componente for desmontado com ela aberta.
   useEffect(() => {
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop())
