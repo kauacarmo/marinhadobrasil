@@ -26,13 +26,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
+import { todosOsCargos } from "@/lib/cargos-marinha"
 import { emitirDocumentoAquaviario } from "@/app/admin/aquaviarios/actions"
 import { gerarCardDocumento, nomeArquivoCard, type DadosCard } from "@/lib/gerar-card-documento"
 
 type Campo = {
   key: string
   label: string
-  tipo: "text" | "select" | "textarea"
+  tipo: "text" | "select" | "textarea" | "date"
   options?: string[]
   placeholder?: string
 }
@@ -56,8 +57,8 @@ const CAMPOS: Record<TipoDocAquaviario, Campo[]> = {
   ],
   funcional_militar: [
     { key: "nr_registro", label: "NR Registro (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
-    { key: "posto", label: "Posto / Graduação / Categoria", tipo: "text", placeholder: "ex.: Primeiro-Tenente" },
-    { key: "data_nascimento", label: "Data de nascimento", tipo: "text", placeholder: "ex.: 01/01/1990" },
+    { key: "posto", label: "Posto / Graduação / Categoria", tipo: "select", options: todosOsCargos },
+    { key: "data_nascimento", label: "Data de nascimento", tipo: "date", placeholder: "DD/MM/AAAA" },
     { key: "nip", label: "NIP (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
     { key: "cpf", label: "CPF", tipo: "text", placeholder: "ex.: 000.000.000-00" },
     { key: "ric", label: "RIC (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
@@ -407,6 +408,16 @@ export function AquaviariosManager({
                         </option>
                       ))}
                     </select>
+                  ) : c.tipo === "date" ? (
+                    <Input
+                      id={c.key}
+                      type="date"
+                      value={(() => { const [day, month, year] = (valores[c.key] || "").split("/"); return year && month && day ? `${year}-${month}-${day}` : "" })()}
+                      onChange={(e) => {
+                        const [year, month, day] = e.target.value.split("-")
+                        setValores((v) => ({ ...v, [c.key]: year && month && day ? `${day}/${month}/${year}` : "" }))
+                      }}
+                    />
                   ) : c.tipo === "textarea" ? (
                     <Textarea
                       id={c.key}
@@ -613,8 +624,8 @@ export function AquaviariosManager({
                   Selecione a janela do FiveM no compartilhamento de tela. Se o navegador bloquear, a câmera será usada como fallback.
                 </p>
               )}
-              <div className="overflow-hidden rounded-md border border-border bg-black">
-                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+<div className="overflow-hidden rounded-md border border-border bg-muted">
+  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <video ref={videoRef} playsInline muted className="aspect-video w-full bg-muted object-contain" />
               </div>
               <div className="flex justify-end gap-2">
