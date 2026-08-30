@@ -187,6 +187,8 @@ export function AquaviariosManager({
     setCameraErro(null)
     setCameraAberta(true)
     try {
+      // Aguarda o modal montar o elemento <video> antes de anexar o stream.
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
       let stream: MediaStream
       try {
         stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
@@ -574,13 +576,15 @@ export function AquaviariosManager({
           {gerandoCard ? <Loader2 className="size-3.5 animate-spin" /> : null}
         </div>
         {cardPreview ? (
-          <div className="space-y-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={cardPreview || "/placeholder.svg"}
-              alt={`Card do documento ${DOC_AQUAVIARIO_LABEL[tipo]} de ${titular || "titular"}`}
-              className="block w-full rounded-lg border border-border shadow-sm"
-            />
+<div className="flex flex-col gap-3">
+            <div className="overflow-hidden rounded-lg border border-border bg-transparent leading-none">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={cardPreview || "/placeholder.svg"}
+                alt={`Card do documento ${DOC_AQUAVIARIO_LABEL[tipo]} de ${titular || "titular"}`}
+                className="block h-auto w-full align-top"
+              />
+            </div>
             <Button type="button" variant="outline" size="sm" className="w-full" onClick={baixarCard}>
               <Download className="size-4" /> Baixar PNG
             </Button>
