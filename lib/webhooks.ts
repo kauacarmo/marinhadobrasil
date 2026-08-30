@@ -114,7 +114,7 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
         url: urlPortal,
         color: cor,
         fields,
-        footer: { text: rodape || `Documento emitido pela ${orgao}` },
+        footer: { text: rodape || `Documento emitido ${ehFuncional ? "pelo" : "pela"} ${orgao}` },
         timestamp: new Date().toISOString(),
       }
       if (titular) embed.description = `**Titular:** ${titular}`
