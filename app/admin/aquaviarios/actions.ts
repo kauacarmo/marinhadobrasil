@@ -132,7 +132,7 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
 export async function enviarAvisoDocumento(tipo: TipoDocAquaviario, titular: string, avisoPersonalizado?: string) {
   const supabase = createAdminClient()
   const { data: webhooks } = await supabase.from("webhooks").select("url").eq("aba", tipo).eq("ativo", true)
-  const aviso = (avisoPersonalizado?.trim() || `AVISO: DOCUMENTO DE ${DOC_AQUAVIARIO_LABEL[tipo].toUpperCase()} PARA ${titular.trim().toUpperCase()}`).toUpperCase()
+  const aviso = `⚠️ ${(avisoPersonalizado?.trim() || `AVISO: DOCUMENTO DE ${DOC_AQUAVIARIO_LABEL[tipo].toUpperCase()} PARA ${titular.trim().toUpperCase()}`).toUpperCase()}`
   await Promise.allSettled((webhooks ?? []).map(async ({ url }) => {
     const destino = `${url.trim()}${url.includes("?") ? "&" : "?"}wait=true`
     const resposta = await fetch(destino, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: aviso, allowed_mentions: { parse: [] } }) })

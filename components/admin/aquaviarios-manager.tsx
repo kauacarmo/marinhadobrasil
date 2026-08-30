@@ -372,7 +372,7 @@ export function AquaviariosManager({
     <div className="mb-5 flex gap-2 rounded-lg border border-border bg-muted/30 p-1">
       <button type="button" onClick={() => setAbaFuncional("emissao")} className={cn("rounded-md px-4 py-2 text-sm font-medium", abaFuncional === "emissao" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary")}>Emitir identidade</button>
       <button type="button" onClick={() => setAbaFuncional("armazenadas")} className={cn("rounded-md px-4 py-2 text-sm font-medium", abaFuncional === "armazenadas" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary")}>Funcionais armazenadas ({funcionais.length})</button>
-      <button type="button" onClick={() => setAbaFuncional("armazenadas")} className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"><TriangleAlert className="size-4" /> Aviso</button>
+      <button type="button" onClick={() => setAbaFuncional("armazenadas")} className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">Avisos</button>
     </div>
   ) : null}
   {tipo === "funcional_militar" && abaFuncional === "armazenadas" ? (
@@ -383,7 +383,7 @@ export function AquaviariosManager({
           <Label htmlFor="aviso-funcional">Aviso para o canal</Label>
           <Textarea id="aviso-funcional" value={aviso} onChange={(event) => setAviso(event.target.value)} placeholder="Digite o aviso que será exibido no canal..." rows={3} />
           <Button type="button" variant="outline" onClick={enviarAviso} disabled={isPending || !aviso.trim() || !temWebhook} className="w-fit">
-            <TriangleAlert className="size-4" /> Enviar aviso
+            Enviar aviso
           </Button>
         </div>
         {funcionais.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma funcional armazenada.</p> : funcionais.map((item) => (
