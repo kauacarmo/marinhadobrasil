@@ -346,7 +346,7 @@ async function gerarCardFuncionalMilitar(dados: DadosCard): Promise<Blob> {
     ctx!.globalAlpha = 0.85
     ctx!.font = `italic ${Math.max(18, A * 0.036)}px ${FONTE_SERIF}`
     ctx!.textAlign = "center"
-    ctx!.fillText(assinatura, L * 0.5, A * 0.872)
+    ctx!.fillText(assinatura, L * 0.5, A * 0.925)
     ctx!.restore()
     ctx!.textAlign = "left"
   }
