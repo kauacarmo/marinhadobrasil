@@ -94,19 +94,30 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
     if (typeof d.documento === "string" && Array.isArray(d.campos) && evento !== "teste") {
       const urlPortal = "https://www.marinha.mil.br/"
       const ehFuncional = d.documento === "funcional_militar"
-      const cor = d.documento === "carteira_nautica" ? 0x0f5132 : ehFuncional ? 0x0b3d91 : 0x1e3a5f
+      const cor = d.documento === "carteira_aerea" ? 0x174ea6 : d.documento === "carteira_nautica" ? 0x0f5132 : ehFuncional ? 0x0b3d91 : 0x1e3a5f
       const orgao = ehFuncional ? "Ministério da Defesa" : "Capitania dos Portos"
       const titular = typeof d.titular === "string" ? d.titular.trim() : ""
       const foto = typeof d.foto_url === "string" && /^https?:\/\//i.test(d.foto_url.trim()) ? d.foto_url.trim() : ""
 
-      const fields = (d.campos as Array<Record<string, unknown>>)
+      const camposBrutos = d.campos as Array<Record<string, unknown>>
+      const nrRegistro = camposBrutos.find((c) => /^(N[º°]?[. ]*REGISTRO|NR REGISTRO|NUMERO DE REGISTRO)$/i.test(String(c?.label ?? "")))
+      const vistos = new Set<string>()
+      const fields = camposBrutos
         .map((c) => ({
-          name: typeof c?.label === "string" ? c.label.trim() : "",
-          value: typeof c?.valor === "string" ? c.valor.trim() : "",
+          name: typeof c?.label === "string" ? c.label.trim().toUpperCase() : "",
+          value: typeof c?.valor === "string" ? c.valor.trim().toUpperCase() : "",
           inline: true,
         }))
-        .filter((f) => f.name && f.value)
+        .filter((f) => {
+          const chave = f.name.replace(/[^A-Z0-9]/g, "")
+          if (!f.name || !f.value || vistos.has(chave)) return false
+          vistos.add(chave)
+          return true
+        })
         .slice(0, 24)
+      if (nrRegistro && !fields.some((field) => field.name.replace(/[^A-Z0-9]/g, "") === "NRREGISTRO")) {
+        fields.unshift({ name: "NR REGISTRO", value: String(nrRegistro.valor ?? "").trim().toUpperCase(), inline: true })
+      }
 
       const embed: Record<string, unknown> = {
         author: { name: `Marinha do Brasil — ${orgao}`, url: urlPortal },

@@ -1,6 +1,9 @@
 "use server"
 
 import { createAdminClient } from "@/lib/supabase/admin"
+import sharp from "sharp"
+import { readFile } from "node:fs/promises"
+import path from "node:path"
 import { dispararWebhooks } from "@/lib/webhooks"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
 
@@ -66,9 +69,9 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
       const bruto = JSON.parse(String(formData.get("campos") || "[]")) as CampoEntrada[]
       bruto.forEach((campo) => camposInformados.set(String(campo.label || "").trim().toLowerCase(), String(campo.valor || "").trim()))
     } catch {}
-    camposInformados.set("nº de registro", numeracao.nr_registro)
-    camposInformados.set("nip", numeracao.nip)
-    camposInformados.set("ric", numeracao.ric)
+    camposInformados.set("Nº de registro", numeracao.nr_registro)
+    camposInformados.set("NIP", numeracao.nip)
+    camposInformados.set("RIC", numeracao.ric)
     formData.set("campos", JSON.stringify(Array.from(camposInformados, ([label, valor]) => ({ label, valor }))))
   }
   const rodape = String(formData.get("rodape") || "").trim() || null
@@ -126,6 +129,36 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
     data: new Date().toISOString().slice(0, 10),
   })
 
+  return { success: true }
+}
+
+export async function enviarAvisoDocumento(tipo: TipoDocAquaviario, titular: string, avisoPersonalizado?: string) {
+  const supabase = createAdminClient()
+  const { data: webhooks } = await supabase.from("webhooks").select("url").eq("aba", tipo).eq("ativo", true)
+  const aviso = (avisoPersonalizado?.trim() || `AVISO: DOCUMENTO DE ${DOC_AQUAVIARIO_LABEL[tipo].toUpperCase()} PARA ${titular.trim().toUpperCase()}`).toUpperCase()
+  const escaparXml = (texto: string) => texto.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;")
+  const linhas = aviso.match(/.{1,78}(?:\\s|$)/g)?.map((linha) => linha.trim()).filter(Boolean) ?? [aviso]
+  const textoSvg = linhas.map((linha, indice) => `<text x="50%" y="${125 + indice * 30}" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="22" font-weight="700">${escaparXml(linha)}</text>`).join("")
+  const modelo = await readFile(path.join(process.cwd(), "public", "aviso-do-sistema.gif"))
+  const imagemAviso = await sharp(modelo, { animated: false }).composite([{ input: Buffer.from(`<svg width="980" height="176"><rect x="245" y="100" width="490" height="62" fill="#020b1c" fill-opacity=".78" rx="8"/>${textoSvg}</svg>`), top: 0, left: 0 }]).png().toBuffer()
+  await Promise.allSettled((webhooks ?? []).map(async ({ url }) => {
+    const destino = `${url.trim()}${url.includes("?") ? "&" : "?"}wait=true`
+    const formulario = new FormData()
+    const cargosAviso = "<@&1380774161915449354>\n<@&1534292004685615194>"
+    formulario.append("payload_json", JSON.stringify({
+      content: `${aviso}\n\n${cargosAviso}`,
+      allowed_mentions: { parse: [], roles: ["1380774161915449354", "1534292004685615194"] },
+    }))
+    formulario.append("files[0]", new Blob([imagemAviso], { type: "image/png" }), "aviso-do-sistema.png")
+    const resposta = await fetch(destino, { method: "POST", body: formulario })
+    if (!resposta.ok) return
+    const mensagem = await resposta.json().catch(() => null)
+    const partes = url.match(/discord(?:app)?\.com\/api\/webhooks\/(\d+)\/([^/?]+)/i)
+    if (mensagem?.id && partes) {
+      await new Promise((resolve) => setTimeout(resolve, 40000))
+      await fetch(`https://discord.com/api/webhooks/${partes[1]}/${partes[2]}/messages/${mensagem.id}`, { method: "DELETE" })
+    }
+  }))
   return { success: true }
 }
 

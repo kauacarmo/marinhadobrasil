@@ -30,7 +30,7 @@ import type { AdminUser } from "@/lib/types"
 import { MemberMentionInput } from "@/components/admin/member-mention-input"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
 import { todosOsCargos } from "@/lib/cargos-marinha"
-import { emitirDocumentoAquaviario, atualizarSituacaoFuncional, excluirIdentidadeFuncional } from "@/app/admin/aquaviarios/actions"
+import { emitirDocumentoAquaviario, atualizarSituacaoFuncional, excluirIdentidadeFuncional, enviarAvisoDocumento } from "@/app/admin/aquaviarios/actions"
 import { gerarCardDocumento, nomeArquivoCard, type DadosCard } from "@/lib/gerar-card-documento"
 
 type Campo = {
@@ -66,12 +66,12 @@ const CAMPOS: Record<TipoDocAquaviario, Campo[]> = {
     { key: "validade", label: "Validade", tipo: "text", placeholder: "ex.: 12/2030" },
   ],
   funcional_militar: [
-    { key: "nr_registro", label: "NR Registro (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
-    { key: "posto", label: "Posto / Graduação / Categoria", tipo: "select", options: todosOsCargos },
-    { key: "data_nascimento", label: "Data de nascimento", tipo: "date", placeholder: "DD/MM/AAAA" },
-    { key: "nip", label: "NIP (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
-    { key: "cpf", label: "CPF", tipo: "text", placeholder: "ex.: 000.000.000-00" },
-    { key: "ric", label: "RIC (automático)", tipo: "text", placeholder: "Gerado ao emitir" },
+    { key: "nr_registro", label: "NR REGISTRO (AUTOMÁTICO)", tipo: "text", placeholder: "GERADO AO EMITIR" },
+    { key: "posto", label: "POSTO / GRADUAÇÃO / CATEGORIA", tipo: "select", options: todosOsCargos },
+    { key: "data_nascimento", label: "DATA DE NASCIMENTO", tipo: "date", placeholder: "DD/MM/AAAA" },
+    { key: "nip", label: "NIP (AUTOMÁTICO)", tipo: "text", placeholder: "GERADO AO EMITIR" },
+    { key: "cpf", label: "CPF", tipo: "text", placeholder: "EX.: 000.000.000-00" },
+    { key: "ric", label: "RIC (AUTOMÁTICO)", tipo: "text", placeholder: "GERADO AO EMITIR" },
   ],
 }
 
@@ -109,6 +109,7 @@ export function AquaviariosManager({
   const [isPending, startTransition] = useTransition()
   const [erro, setErro] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [aviso, setAviso] = useState("")
   const [cardPreview, setCardPreview] = useState("")
   const [gerandoCard, setGerandoCard] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -315,6 +316,15 @@ export function AquaviariosManager({
     }
   }
 
+  function enviarAviso() {
+    setErro(null)
+    startTransition(async () => {
+      const resultado = await enviarAvisoDocumento(tipo, titular, aviso)
+      if (resultado?.error) setErro(resultado.error)
+      else { setAviso(""); flash("Aviso enviado ao canal e será removido em 40 segundos.") }
+    })
+  }
+
   function emitir() {
     setErro(null)
     startTransition(async () => {
@@ -362,12 +372,20 @@ export function AquaviariosManager({
     <div className="mb-5 flex gap-2 rounded-lg border border-border bg-muted/30 p-1">
       <button type="button" onClick={() => setAbaFuncional("emissao")} className={cn("rounded-md px-4 py-2 text-sm font-medium", abaFuncional === "emissao" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary")}>Emitir identidade</button>
       <button type="button" onClick={() => setAbaFuncional("armazenadas")} className={cn("rounded-md px-4 py-2 text-sm font-medium", abaFuncional === "armazenadas" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary")}>Funcionais armazenadas ({funcionais.length})</button>
+      <button type="button" onClick={() => setAbaFuncional("armazenadas")} className="inline-flex items-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">Avisos</button>
     </div>
   ) : null}
   {tipo === "funcional_militar" && abaFuncional === "armazenadas" ? (
     <Card className="mb-6">
       <CardHeader><CardTitle>Identidades funcionais</CardTitle><CardDescription>Consulte, altere a situação ou exclua documentos emitidos.</CardDescription></CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+          <Label htmlFor="aviso-funcional">Aviso para o canal</Label>
+          <Textarea id="aviso-funcional" value={aviso} onChange={(event) => setAviso(event.target.value)} placeholder="Digite o aviso que será exibido no canal..." rows={3} />
+          <Button type="button" variant="outline" onClick={enviarAviso} disabled={isPending || !aviso.trim() || !temWebhook} className="w-fit">
+            Enviar aviso
+          </Button>
+        </div>
         {funcionais.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma funcional armazenada.</p> : funcionais.map((item) => (
           <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4">
             <div><p className="font-medium">{item.titular}</p><p className="text-xs text-muted-foreground">Emitida em {new Date(item.created_at).toLocaleDateString("pt-BR")}</p></div>
@@ -620,9 +638,9 @@ export function AquaviariosManager({
                     <Send className="size-4" /> Emitir e enviar
                   </>
                 )}
-              </Button>
-            </div>
-          </CardContent>
+  </Button>
+  </div>
+  </CardContent>
         </Card>
       </div>
 
