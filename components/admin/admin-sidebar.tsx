@@ -8,7 +8,6 @@ import {
   FileText,
   GraduationCap,
   Users,
-  UserCog,
   Newspaper,
   Radio,
   ScrollText,
@@ -30,21 +29,17 @@ const navItems = [
   { href: "/admin/concursos", label: "Concursos", icon: FileText },
   { href: "/admin/cursos", label: "Cursos", icon: GraduationCap },
   { href: "/admin/publicacoes", label: "Resultados e Editais", icon: ClipboardList },
-  { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
   { href: "/admin/aquaviarios", label: "Documentos", icon: Anchor },
   { href: "/admin/aquaviarios/identidade-funcional", label: "Funcionais", icon: IdCard },
   { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
-  { href: "/admin/diario-naval", label: "Diário Naval", icon: Radio },
-  { href: "/admin/portarias", label: "Portarias", icon: ScrollText },
-  { href: "/admin/boletim", label: "Boletim Interno", icon: BookText },
-  { href: "/admin/disciplinar", label: "Disciplinar", icon: Gavel },
-  { href: "/admin/sim", label: "Agendamentos SIM", icon: CalendarClock },
+  { href: "/admin/documentos", label: "Documentos Oficiais", icon: ScrollText },
+  { href: "/admin/juridico", label: "Jurídico", icon: Gavel },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ]
 
 // Guias visíveis para cargos com acesso restrito (ex.: Publicitário)
-const guiasRestritas = ["/admin", "/admin/noticias", "/admin/diario-naval"]
+const guiasRestritas = ["/admin", "/admin/noticias"]
 
 export function AdminSidebar({ papel = "" }: { papel?: string }) {
   const pathname = usePathname()
@@ -71,29 +66,11 @@ export function AdminSidebar({ papel = "" }: { papel?: string }) {
 
       <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {itens.map((item) => {
-          const active =
-            item.href === "/admin"
-              ? pathname === "/admin"
-              : item.href === "/admin/aquaviarios"
-                ? pathname === item.href
-                : pathname.startsWith(item.href)
+          const active = item.href === "/admin" ? pathname === "/admin" : item.href === "/admin/aquaviarios" ? pathname === item.href : pathname.startsWith(item.href)
           const Icon = item.icon
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                active
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              )}
-            >
-              <Icon className="h-4.5 w-4.5" />
-              {item.label}
-            </Link>
-          )
+          return <Link key={item.href} href={item.href} className={cn("flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")}><Icon className="h-4.5 w-4.5" />{item.label}</Link>
         })}
+
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
