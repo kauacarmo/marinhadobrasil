@@ -8,6 +8,7 @@ const PATHS: Record<TipoDocumento, string> = {
   portaria: "/admin/portarias",
   boletim: "/admin/boletim",
   disciplinar: "/admin/disciplinar",
+  juridico: "/admin/juridico",
 }
 
 export async function listDocumentos(tipo: TipoDocumento): Promise<Documento[]> {

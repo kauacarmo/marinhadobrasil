@@ -35,6 +35,7 @@ const navItems = [
   { href: "/admin/aquaviarios/identidade-funcional", label: "Funcionais", icon: IdCard },
   { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
   { href: "/admin/documentos", label: "Documentos Oficiais", icon: ScrollText },
+  { href: "/admin/juridico", label: "Jurídico", icon: Gavel },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ]
 
@@ -73,6 +74,8 @@ export function AdminSidebar({ papel = "" }: { papel?: string }) {
                 ? pathname.startsWith("/admin/configuracoes") || pathname.startsWith("/admin/usuarios")
               : item.href === "/admin/noticias"
                 ? pathname.startsWith("/admin/noticias") || pathname.startsWith("/admin/diario-naval")
+              : item.href === "/admin/juridico"
+                ? pathname.startsWith("/admin/juridico")
               : item.href === "/admin/documentos"
                 ? pathname.startsWith("/admin/documentos") || pathname.startsWith("/admin/sim") || pathname.startsWith("/admin/portarias") || pathname.startsWith("/admin/boletim") || pathname.startsWith("/admin/disciplinar")
               : item.href === "/admin/aquaviarios"

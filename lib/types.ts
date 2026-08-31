@@ -112,7 +112,7 @@ export const STATUS_LABEL: Record<ContestStatus, string> = {
   previsto: "Previsto",
 }
 
-export type TipoDocumento = "portaria" | "boletim" | "disciplinar"
+export type TipoDocumento = "portaria" | "boletim" | "disciplinar" | "juridico"
 
 export type Documento = {
   id: string
@@ -129,12 +129,14 @@ export const DOCUMENTO_LABEL: Record<TipoDocumento, string> = {
   portaria: "Portarias",
   boletim: "Boletim Interno",
   disciplinar: "Disciplinar",
+  juridico: "Jurídico",
 }
 
 export const DOCUMENTO_LABEL_SINGULAR: Record<TipoDocumento, string> = {
   portaria: "Portaria",
   boletim: "Boletim Interno",
   disciplinar: "Documento Disciplinar",
+  juridico: "Documento Jurídico",
 }
 
 export type TipoPublicacao = "resultado" | "edital" | "cronograma"
