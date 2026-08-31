@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
 import { sair } from "@/app/login/actions"
 import {
   LayoutDashboard,
@@ -21,7 +20,6 @@ import {
   Settings,
   CalendarClock,
   LogOut,
-  ChevronDown,
 } from "lucide-react"
 import { Brasao } from "@/components/brasao"
 import { cn } from "@/lib/utils"
@@ -35,29 +33,11 @@ const navItems = [
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
   { href: "/admin/aquaviarios", label: "Documentos", icon: Anchor },
   { href: "/admin/aquaviarios/identidade-funcional", label: "Funcionais", icon: IdCard },
-]
-
-const navGroups = [
-  {
-    label: "Comunicação",
-    items: [
-      { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
-    ],
-  },
-  {
-    label: "Documentos Oficiais",
-    items: [
-      { href: "/admin/documentos", label: "Portarias, Boletim e Disciplinar", icon: ScrollText },
-      { href: "/admin/juridico", label: "Jurídico", icon: Gavel },
-    ],
-  },
-  {
-    label: "Configurações",
-    items: [
-      { href: "/admin/configuracoes", label: "Configurações gerais", icon: Settings },
-      { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
-    ],
-  },
+  { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
+  { href: "/admin/documentos", label: "Documentos Oficiais", icon: ScrollText },
+  { href: "/admin/juridico", label: "Jurídico", icon: Gavel },
+  { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
+  { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
 ]
 
 // Guias visíveis para cargos com acesso restrito (ex.: Publicitário)
@@ -69,12 +49,6 @@ export function AdminSidebar({ papel = "" }: { papel?: string }) {
 
   const restrito = cargosRestritos.includes(papel)
   const itens = restrito ? navItems.filter((i) => guiasRestritas.includes(i.href)) : navItems
-  const gruposVisiveis = restrito ? [] : navGroups
-  const gruposIniciais = gruposVisiveis.reduce<Record<string, boolean>>((acc, grupo) => {
-    acc[grupo.label] = grupo.items.some((item) => pathname.startsWith(item.href))
-    return acc
-  }, {})
-  const [abertos, setAbertos] = useState<Record<string, boolean>>(gruposIniciais)
 
   async function handleSair() {
     await sair()
@@ -98,18 +72,7 @@ export function AdminSidebar({ papel = "" }: { papel?: string }) {
           const Icon = item.icon
           return <Link key={item.href} href={item.href} className={cn("flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")}><Icon className="h-4.5 w-4.5" />{item.label}</Link>
         })}
-        {gruposVisiveis.map((grupo) => {
-          const aberto = abertos[grupo.label]
-          const ativo = grupo.items.some((item) => pathname.startsWith(item.href))
-          return (
-            <div key={grupo.label} className="pt-2">
-              <button type="button" onClick={() => setAbertos((atual) => ({ ...atual, [grupo.label]: !atual[grupo.label] }))} aria-expanded={aberto} className={cn("flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-semibold uppercase tracking-wider", ativo ? "text-sidebar-primary" : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")}>
-                {grupo.label}<ChevronDown className={cn("size-4 transition-transform", aberto && "rotate-180")} />
-              </button>
-              {aberto && <div className="mt-1 space-y-1 border-l border-sidebar-border pl-2">{grupo.items.map((item) => { const Icon = item.icon; const itemAtivo = pathname.startsWith(item.href); return <Link key={item.href} href={item.href} className={cn("flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors", itemAtivo ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")}><Icon className="size-4" />{item.label}</Link> })}</div>}
-            </div>
-          )
-        })}
+
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
