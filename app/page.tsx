@@ -60,7 +60,7 @@ export default async function HomePage() {
             alt="Navio da Marinha A140 navegando em mar aberto sob céu azul"
             fill
             priority
-            className="object-cover opacity-40"
+            className="object-cover opacity-60"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/80 to-primary/25" />
           <div className="relative mx-auto grid max-w-5xl gap-8 px-4 py-16 md:py-24">
