@@ -102,7 +102,7 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
       const camposBrutos = d.campos as Array<Record<string, unknown>>
       const nrRegistro = camposBrutos.find((c) => /^(N[º°]?[. ]*REGISTRO|NR REGISTRO|NUMERO DE REGISTRO)$/i.test(String(c?.label ?? "")))
       const vistos = new Set<string>()
-      const fields = camposBrutos
+      let fields = camposBrutos
         .map((c) => ({
           name: typeof c?.label === "string" ? c.label.trim().toUpperCase() : "",
           value: typeof c?.valor === "string" ? c.valor.trim().toUpperCase() : "",
@@ -117,6 +117,20 @@ export function montarCorpoWebhook(url: string, aba: AbaWebhook, evento: string,
         .slice(0, 24)
       if (nrRegistro && !fields.some((field) => field.name.replace(/[^A-Z0-9]/g, "") === "NRREGISTRO")) {
         fields.unshift({ name: "NR REGISTRO", value: String(nrRegistro.valor ?? "").trim().toUpperCase(), inline: true })
+      }
+
+      if (ehFuncional) {
+        const localizar = (...rotulos: string[]) => camposBrutos.find((campo) => rotulos.some((rotulo) => String(campo?.label ?? "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim() === rotulo.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim()))
+        const dadosFuncional = [
+          ["TITULAR", titular],
+          ["POSTO / GRADUAÇÃO / CATEGORIA", localizar("POSTO / GRADUAÇÃO / CATEGORIA", "POSTO GRAD CAT", "POSTO")?.valor],
+          ["DATA DE NASCIMENTO", localizar("DATA DE NASCIMENTO", "DATA NASCIMENTO")?.valor],
+          ["NIP", localizar("NIP")?.valor],
+          ["RIC", localizar("RIC")?.valor],
+          ["Nº DE REGISTRO", localizar("Nº DE REGISTRO", "NUMERO DE REGISTRO")?.valor],
+          ["NR REGISTRO", localizar("NR REGISTRO", "Nº REGISTRO")?.valor ?? nrRegistro?.valor],
+        ].filter((campo): campo is [string, unknown] => typeof campo[1] === "string" && campo[1].trim().length > 0)
+        fields = dadosFuncional.map(([name, value]) => ({ name, value: String(value).trim().toUpperCase(), inline: true }))
       }
 
       const embed: Record<string, unknown> = {

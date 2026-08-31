@@ -18,6 +18,7 @@ import {
   Anchor,
   IdCard,
   Settings,
+  CalendarClock,
   LogOut,
 } from "lucide-react"
 import { Brasao } from "@/components/brasao"
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/admin/portarias", label: "Portarias", icon: ScrollText },
   { href: "/admin/boletim", label: "Boletim Interno", icon: BookText },
   { href: "/admin/disciplinar", label: "Disciplinar", icon: Gavel },
+  { href: "/admin/sim", label: "Agendamentos SIM", icon: CalendarClock },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ]
 
