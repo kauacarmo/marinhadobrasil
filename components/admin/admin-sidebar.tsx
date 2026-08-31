@@ -30,7 +30,6 @@ const navItems = [
   { href: "/admin/concursos", label: "Concursos", icon: FileText },
   { href: "/admin/cursos", label: "Cursos", icon: GraduationCap },
   { href: "/admin/publicacoes", label: "Resultados e Editais", icon: ClipboardList },
-  { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
   { href: "/admin/aquaviarios", label: "Documentos", icon: Anchor },
   { href: "/admin/aquaviarios/identidade-funcional", label: "Funcionais", icon: IdCard },
@@ -71,9 +70,11 @@ export function AdminSidebar({ papel = "" }: { papel?: string }) {
 
       <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {itens.map((item) => {
-          const active =
+            const active =
             item.href === "/admin"
               ? pathname === "/admin"
+              : item.href === "/admin/configuracoes"
+                ? pathname.startsWith("/admin/configuracoes") || pathname.startsWith("/admin/usuarios")
               : item.href === "/admin/aquaviarios"
                 ? pathname === item.href
                 : pathname.startsWith(item.href)

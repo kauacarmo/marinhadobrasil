@@ -9,7 +9,7 @@ export default async function UsuariosPage() {
 
   return (
     <div>
-      <AdminTopbar titulo="Usuários" descricao="Gerencie os usuários administrativos do sistema." />
+      <AdminTopbar titulo="Configurações · Usuários" descricao="Gerencie os usuários administrativos do sistema." />
       <div className="p-6">
         <UsuariosManager usuarios={usuarios} />
       </div>

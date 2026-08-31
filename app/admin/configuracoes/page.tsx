@@ -8,6 +8,8 @@ import { listWebhooks } from "@/app/admin/configuracoes/actions"
 import { ConfiguracoesAdmin } from "@/components/admin/configuracoes-admin"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
+import Link from "next/link"
+import { UserCog } from "lucide-react"
 
 function Campo({ label, defaultValue }: { label: string; defaultValue: string }) {
   return (
@@ -34,6 +36,10 @@ export default async function AdminConfiguracoesPage() {
       />
 
       <div className="max-w-3xl space-y-6 p-6">
+        <div className="flex items-center gap-2 border-b border-border pb-3">
+          <Link href="/admin/configuracoes" className="rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">Geral</Link>
+          <Link href="/admin/usuarios" className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"><UserCog className="size-4" /> Usuários</Link>
+        </div>
         <WebhooksManager webhooks={webhooks} />
 
         <ConfiguracoesAdmin webhooks={webhooks} />
