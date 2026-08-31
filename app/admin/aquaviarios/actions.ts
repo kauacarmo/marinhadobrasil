@@ -69,9 +69,9 @@ export async function emitirDocumentoAquaviario(formData: FormData) {
       const bruto = JSON.parse(String(formData.get("campos") || "[]")) as CampoEntrada[]
       bruto.forEach((campo) => camposInformados.set(String(campo.label || "").trim().toLowerCase(), String(campo.valor || "").trim()))
     } catch {}
-    camposInformados.set("Nº de registro", numeracao.nr_registro)
-    camposInformados.set("NIP", numeracao.nip)
-    camposInformados.set("RIC", numeracao.ric)
+    camposInformados.set("nº de registro", numeracao.nr_registro)
+    camposInformados.set("nip", numeracao.nip)
+    camposInformados.set("ric", numeracao.ric)
     formData.set("campos", JSON.stringify(Array.from(camposInformados, ([label, valor]) => ({ label, valor }))))
   }
   const rodape = String(formData.get("rodape") || "").trim() || null
