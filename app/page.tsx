@@ -13,6 +13,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { ConcursoCard } from "@/components/concurso-card"
 import { noticias, formatarData } from "@/lib/data"
 import { getConcursosPublicos } from "@/lib/concursos-publicos"
+import { obterConfiguracoesSite } from "@/app/admin/configuracoes/actions"
 
 export const dynamic = "force-dynamic"
 
@@ -44,7 +45,7 @@ const acessos = [
 ]
 
 export default async function HomePage() {
-  const concursos = await getConcursosPublicos()
+  const [concursos, configuracoes] = await Promise.all([getConcursosPublicos(), obterConfiguracoesSite()])
   const destaque = concursos.filter((c) => c.status === "Inscrições Abertas").slice(0, 3)
   const emDestaque = destaque.length > 0 ? destaque : concursos.slice(0, 3)
 
@@ -54,7 +55,7 @@ export default async function HomePage() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="relative isolate overflow-hidden bg-primary text-primary-foreground">
+        {configuracoes.banner_concursos && <section className="relative isolate overflow-hidden bg-primary text-primary-foreground">
           <Image
             src="/banner-navio.png"
             alt="Navio da Marinha navegando em mar aberto ao entardecer"
@@ -92,7 +93,7 @@ export default async function HomePage() {
               </div>
             </div>
           </div>
-        </section>
+        </section>}
 
         {/* Acesso rápido */}
         <section className="mx-auto max-w-6xl px-4 pt-12">

@@ -58,6 +58,31 @@ export async function apagarWebhook(id: string) {
   return { success: true }
 }
 
+export async function obterConfiguracoesSite() {
+  const supabase = createAdminClient()
+  const { data } = await supabase.from("site_settings").select("orgao,email,telefone,endereco,banner_concursos,notificacoes_email").eq("id", 1).maybeSingle()
+  return data ?? { orgao: "Diretoria de Ensino da Marinha", email: "concursos@marinha.mil.br", telefone: "(21) 2104-5000", endereco: "Rua da Ponte, s/nº - Ilha das Cobras - Rio de Janeiro/RJ", banner_concursos: true, notificacoes_email: true }
+}
+
+export async function salvarConfiguracoesSite(formData: FormData) {
+  const supabase = createAdminClient()
+  const valores = {
+    orgao: String(formData.get("orgao") ?? "").trim(),
+    email: String(formData.get("email") ?? "").trim(),
+    telefone: String(formData.get("telefone") ?? "").trim(),
+    endereco: String(formData.get("endereco") ?? "").trim(),
+    banner_concursos: formData.get("banner_concursos") === "on",
+    notificacoes_email: formData.get("notificacoes_email") === "on",
+    updated_at: new Date().toISOString(),
+  }
+  if (!valores.orgao || !valores.email || !valores.telefone || !valores.endereco) return { error: "Preencha todos os dados obrigatórios." }
+  const { error } = await supabase.from("site_settings").update(valores).eq("id", 1)
+  if (error) return { error: "Não foi possível salvar as configurações." }
+  revalidatePath("/")
+  revalidatePath("/admin/configuracoes")
+  return { success: true }
+}
+
 export async function testarWebhook(id: string) {
   const supabase = createAdminClient()
   const { data: webhook } = await supabase.from("webhooks").select("*").eq("id", id).single()
