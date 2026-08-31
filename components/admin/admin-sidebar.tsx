@@ -16,7 +16,6 @@ import {
   Gavel,
   ClipboardList,
   Anchor,
-  CalendarDays,
   Settings,
   LogOut,
 } from "lucide-react"
@@ -32,7 +31,6 @@ const navItems = [
   { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
   { href: "/admin/aquaviarios", label: "Aquaviários", icon: Anchor },
-  { href: "/admin/sim", label: "Agendamentos SIM", icon: CalendarDays },
   { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
   { href: "/admin/diario-naval", label: "Diário Naval", icon: Radio },
   { href: "/admin/portarias", label: "Portarias", icon: ScrollText },

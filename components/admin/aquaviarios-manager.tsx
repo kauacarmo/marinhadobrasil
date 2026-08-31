@@ -26,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { DOC_AQUAVIARIO_LABEL, type TipoDocAquaviario } from "@/lib/types"
-import { emitirDocumentoAquaviario } from "@/app/admin/documentos /actions"
+import { emitirDocumentoAquaviario } from "@/app/admin/aquaviarios/actions"
 import { gerarCardDocumento, nomeArquivoCard, type DadosCard } from "@/lib/gerar-card-documento"
 
 type Campo = {
