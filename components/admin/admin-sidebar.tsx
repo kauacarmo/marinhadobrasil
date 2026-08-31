@@ -8,7 +8,6 @@ import {
   FileText,
   GraduationCap,
   Users,
-  UserCog,
   Newspaper,
   Radio,
   ScrollText,
@@ -37,7 +36,6 @@ const navItems = [
   { href: "/admin/documentos", label: "Documentos Oficiais", icon: ScrollText },
   { href: "/admin/juridico", label: "Jurídico", icon: Gavel },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
-  { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
 ]
 
 // Guias visíveis para cargos com acesso restrito (ex.: Publicitário)
