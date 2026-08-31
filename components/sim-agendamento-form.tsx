@@ -14,13 +14,15 @@ export function SimAgendamentoForm() {
     setMensagem("")
     startTransition(async () => {
       const resultado = await criarAgendamentoSIM(formData)
-      setMensagem(resultado.error ?? "Agendamento solicitado com sucesso. Aguarde a confirmação do SIM.")
+      setMensagem(resultado.error ?? `Agendamento solicitado com sucesso. Seu código de acompanhamento é ${resultado.protocolo}. Guarde-o para consultar a situação.`)
     })
   }
   return <form action={enviar} className="grid gap-5 rounded-xl border border-border bg-card p-6 shadow-sm">
     <div className="grid gap-5 sm:grid-cols-2">
       <div className="grid gap-2"><Label htmlFor="nome_completo">Nome completo</Label><Input id="nome_completo" name="nome_completo" required /></div>
-      <div className="grid gap-2"><Label htmlFor="cpf">CPF</Label><Input id="cpf" name="cpf" required /></div>
+      <div className="grid gap-2"><Label htmlFor="cpf">Identificação</Label><Input id="identificacao" name="identificacao" required placeholder="CPF, NIP ou identidade" /></div>
+      <div className="grid gap-2"><Label htmlFor="data_nascimento">Data de nascimento</Label><Input id="data_nascimento" name="data_nascimento" type="date" required /></div>
+      <div className="grid gap-2"><Label htmlFor="graduacao_posto">Graduação / posto</Label><Input id="graduacao_posto" name="graduacao_posto" required /></div>
       <div className="grid gap-2"><Label htmlFor="nip">NIP (opcional)</Label><Input id="nip" name="nip" /></div>
       <div className="grid gap-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" required /></div>
       <div className="grid gap-2"><Label htmlFor="telefone">Telefone</Label><Input id="telefone" name="telefone" required /></div>
