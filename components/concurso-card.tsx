@@ -60,7 +60,7 @@ export function ConcursoCard({ concurso }: { concurso: Concurso }) {
               {concurso.local}
             </LinhaInfo>
           )}
-          {concurso.cargo && <LinhaInfo icon={Award}>Cargo: {concurso.cargo}</LinhaInfo>}
+          {concurso.cargo && <LinhaInfo icon={Award}>Cargo após formado: {concurso.cargo}</LinhaInfo>}
           {concurso.temaProva && (
             <LinhaInfo icon={BookOpen}>Tema da prova: {concurso.temaProva}</LinhaInfo>
           )}
