@@ -26,7 +26,6 @@ const colunas = [
     titulo: "Serviços",
     links: [
       { label: "Área do candidato", href: "/area-candidato" },
-      { label: "Sistema de Identificação da Marinha (SIM)", href: "/sim" },
       { label: "Acessibilidade", href: "/acessibilidade" },
       { label: "Mapa do site", href: "/mapa-do-site" },
       { label: "Ouvidoria", href: "/ouvidoria" },
