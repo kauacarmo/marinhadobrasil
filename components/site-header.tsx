@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { Menu, X, Search } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { Brasao } from "@/components/brasao"
 import { cn } from "@/lib/utils"
 
@@ -68,12 +68,6 @@ export function SiteHeader() {
                 </Link>
               )
             })}
-            <button
-              className="ml-1 inline-flex size-9 items-center justify-center rounded-sm text-foreground hover:bg-secondary"
-              aria-label="Buscar"
-            >
-              <Search className="size-4" />
-            </button>
           </nav>
 
           <div className="flex items-center gap-1 lg:hidden">
