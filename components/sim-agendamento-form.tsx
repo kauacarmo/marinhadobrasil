@@ -23,7 +23,6 @@ export function SimAgendamentoForm() {
       <div className="grid gap-2"><Label htmlFor="cpf">Identificação</Label><Input id="identificacao" name="identificacao" required placeholder="CPF, NIP ou identidade" /></div>
       <div className="grid gap-2"><Label htmlFor="data_nascimento">Data de nascimento</Label><Input id="data_nascimento" name="data_nascimento" type="date" required /></div>
       <div className="grid gap-2"><Label htmlFor="graduacao_posto">Graduação / posto</Label><Input id="graduacao_posto" name="graduacao_posto" required /></div>
-      <div className="grid gap-2"><Label htmlFor="email">E-mail</Label><Input id="email" name="email" type="email" required /></div>
       <div className="grid gap-2"><Label htmlFor="telefone">Telefone</Label><Input id="telefone" name="telefone" required /></div>
       <div className="grid gap-2"><Label htmlFor="servico">Serviço</Label><select id="servico" name="servico" required className="h-10 rounded-md border border-input bg-background px-3 text-sm"><option value="">Selecione</option><option>Emissão de identidade</option><option>Renovação de identidade</option><option>Atualização cadastral</option><option>Outro atendimento</option></select></div>
       <div className="grid gap-2"><Label htmlFor="data_preferida">Data preferida</Label><Input id="data_preferida" name="data_preferida" type="date" required /></div>
