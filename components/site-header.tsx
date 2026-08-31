@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
-import { Menu, X, Search, ShieldCheck } from "lucide-react"
+import { Menu, X, Search } from "lucide-react"
 import { Brasao } from "@/components/brasao"
 import { cn } from "@/lib/utils"
 
@@ -74,27 +74,9 @@ export function SiteHeader() {
             >
               <Search className="size-4" />
             </button>
-            {/* Acesso discreto ao painel: somente ícone, sem rótulo visível. */}
-            <Link
-              href="/login"
-              title="Área Administrativa"
-              className="inline-flex size-9 items-center justify-center rounded-sm text-muted-foreground/40 transition-colors hover:bg-secondary hover:text-primary"
-            >
-              <ShieldCheck className="size-4" />
-              <span className="sr-only">Área Administrativa</span>
-            </Link>
           </nav>
 
           <div className="flex items-center gap-1 lg:hidden">
-            {/* Mesmo acesso discreto ao painel na versão móvel. */}
-            <Link
-              href="/login"
-              title="Área Administrativa"
-              className="inline-flex size-10 items-center justify-center rounded-sm text-muted-foreground/40 transition-colors hover:bg-secondary hover:text-primary"
-            >
-              <ShieldCheck className="size-4" />
-              <span className="sr-only">Área Administrativa</span>
-            </Link>
             <button
               className="inline-flex size-10 items-center justify-center rounded-sm border border-border"
               onClick={() => setAberto((v) => !v)}
