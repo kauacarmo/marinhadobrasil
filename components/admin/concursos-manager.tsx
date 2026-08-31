@@ -268,7 +268,7 @@ export function ConcursosManager({ contests }: { contests: ContestRow[] }) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="cargo">Cargo</Label>
+                  <Label htmlFor="cargo">Cargo após formado</Label>
                   <Input id="cargo" name="cargo" placeholder="ex.: Agente Portuário" />
                 </div>
                 <div className="space-y-2">
@@ -353,7 +353,7 @@ export function ConcursosManager({ contests }: { contests: ContestRow[] }) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="e-cargo">Cargo</Label>
+                  <Label htmlFor="e-cargo">Cargo após formado</Label>
                   <Input id="e-cargo" name="cargo" defaultValue={editando?.cargo} />
                 </div>
                 <div className="space-y-2">
