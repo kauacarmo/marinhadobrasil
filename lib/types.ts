@@ -173,6 +173,7 @@ export type AbaWebhook =
   | "ouvidoria"
   | "cir"
   | "carteira_nautica"
+  | "carteira_aerea"
   | "funcional_militar"
 
 export type DestinoNoticia = "portal" | "diario_naval" | "ambos"
