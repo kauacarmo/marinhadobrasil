@@ -56,8 +56,8 @@ export default async function HomePage() {
         {/* Hero */}
         <section className="relative isolate overflow-hidden bg-primary text-primary-foreground">
           <Image
-            src="/banner-navio.png"
-            alt="Navio da Marinha navegando em mar aberto ao entardecer"
+            src="/navio-a140.webp"
+            alt="Navio da Marinha A140 navegando em mar aberto sob céu azul"
             fill
             priority
             className="object-cover opacity-40"
