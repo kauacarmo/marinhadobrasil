@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function listarAgendamentosSIM() {
-  const { data } = await createAdminClient().from("sim_agendamentos").select("id,nome_completo,cpf,nip,email,telefone,servico,data_preferida,horario_preferido,observacoes,status,created_at").order("data_preferida", { ascending: true })
+  const { data } = await createAdminClient().from("sim_agendamentos").select("id,protocolo,nome_completo,identificacao,data_nascimento,graduacao_posto,data_atendimento,horario_atendimento,servico,local_atendimento,observacoes,status,created_at").order("data_preferida", { ascending: true })
   return data ?? []
 }
 
