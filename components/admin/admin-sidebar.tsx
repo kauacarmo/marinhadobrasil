@@ -31,9 +31,9 @@ const navItems = [
   { href: "/admin/publicacoes", label: "Resultados e Editais", icon: ClipboardList },
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
   { href: "/admin/aquaviarios", label: "Documentos", icon: Anchor },
+  { href: "/admin/documentos-oficiais", label: "Documentos Oficiais", icon: ScrollText },
   { href: "/admin/funcionais", label: "Funcionais", icon: IdCard },
   { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
-  { href: "/admin/documentos-oficiais", label: "Documentos Oficiais", icon: ScrollText },
   { href: "/admin/juridico", label: "Jurídico", icon: Gavel },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ]
