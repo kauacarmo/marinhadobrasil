@@ -31,9 +31,9 @@ const navItems = [
   { href: "/admin/publicacoes", label: "Resultados e Editais", icon: ClipboardList },
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
   { href: "/admin/aquaviarios", label: "Documentos", icon: Anchor },
-  { href: "/admin/aquaviarios/identidade-funcional", label: "Funcionais", icon: IdCard },
+  { href: "/admin/funcionais", label: "Funcionais", icon: IdCard },
   { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
-  { href: "/admin/documentos", label: "Documentos Oficiais", icon: ScrollText },
+  { href: "/admin/documentos-oficiais", label: "Documentos Oficiais", icon: ScrollText },
   { href: "/admin/juridico", label: "Jurídico", icon: Gavel },
   { href: "/admin/configuracoes", label: "Configurações", icon: Settings },
 ]
@@ -66,7 +66,7 @@ export function AdminSidebar({ papel = "" }: { papel?: string }) {
 
       <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {itens.map((item) => {
-          const active = item.href === "/admin" ? pathname === "/admin" : item.href === "/admin/aquaviarios" ? pathname === item.href : pathname.startsWith(item.href)
+          const active = item.href === "/admin" ? pathname === "/admin" : item.href === "/admin/aquaviarios" ? pathname === item.href : item.href === "/admin/documentos-oficiais" ? pathname.startsWith("/admin/documentos") || pathname.startsWith("/admin/documentos-oficiais") : item.href === "/admin/funcionais" ? pathname.startsWith("/admin/funcionais") || pathname.startsWith("/admin/aquaviarios/identidade-funcional") : pathname.startsWith(item.href)
           const Icon = item.icon
           return <Link key={item.href} href={item.href} className={cn("flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors", active ? "bg-sidebar-primary text-sidebar-primary-foreground" : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground")}><Icon className="h-4.5 w-4.5" />{item.label}</Link>
         })}
