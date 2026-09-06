@@ -5,7 +5,12 @@ import { contarWebhooksAquaviarios, listarIdentidadesFuncionais } from "../actio
 export const dynamic = "force-dynamic"
 
 export default async function AdminIdentidadeFuncionalPage() {
-  const [webhooks, funcionais] = await Promise.all([contarWebhooksAquaviarios(), listarIdentidadesFuncionais()])
+  const [webhooksResult, funcionaisResult] = await Promise.allSettled([
+    contarWebhooksAquaviarios(),
+    listarIdentidadesFuncionais(),
+  ])
+  const webhooks = webhooksResult.status === "fulfilled" ? webhooksResult.value : { cir: 0, carteira_nautica: 0, funcional_militar: 0 }
+  const funcionais = funcionaisResult.status === "fulfilled" ? funcionaisResult.value : []
 
   return (
     <>

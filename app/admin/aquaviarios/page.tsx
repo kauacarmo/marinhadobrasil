@@ -6,7 +6,14 @@ import { listUsuarios } from "@/app/admin/usuarios/actions"
 export const dynamic = "force-dynamic"
 
 export default async function AdminAquaviariosPage() {
-  const [webhooks, funcionais, usuarios] = await Promise.all([contarWebhooksAquaviarios(), listarIdentidadesFuncionais(), listUsuarios()])
+  const [webhooksResult, funcionaisResult, usuariosResult] = await Promise.allSettled([
+    contarWebhooksAquaviarios(),
+    listarIdentidadesFuncionais(),
+    listUsuarios(),
+  ])
+  const webhooks = webhooksResult.status === "fulfilled" ? webhooksResult.value : { cir: 0, carteira_nautica: 0, funcional_militar: 0 }
+  const funcionais = funcionaisResult.status === "fulfilled" ? funcionaisResult.value : []
+  const usuarios = usuariosResult.status === "fulfilled" ? usuariosResult.value : []
 
   return (
     <>

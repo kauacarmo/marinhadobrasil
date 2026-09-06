@@ -16,7 +16,9 @@ export default async function DocumentosPage({ searchParams }: { searchParams: P
   const params = await searchParams
   const abaSim = params.aba === "sim"
   const tipo: TipoDocumento = tipos.includes(params.tipo as TipoDocumento) ? params.tipo as TipoDocumento : "portaria"
-  const [documentos, agendamentos] = await Promise.all([listDocumentos(tipo), abaSim ? listarAgendamentosSIM() : Promise.resolve([])])
+  const [documentosResult, agendamentosResult] = await Promise.allSettled([listDocumentos(tipo), abaSim ? listarAgendamentosSIM() : Promise.resolve([])])
+  const documentos = documentosResult.status === "fulfilled" ? documentosResult.value : []
+  const agendamentos = agendamentosResult.status === "fulfilled" ? agendamentosResult.value : []
   const h = await headers()
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? ""
   const proto = h.get("x-forwarded-proto") ?? "https"
