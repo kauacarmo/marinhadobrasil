@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState, useTransition } from "react"
-import { Plus, Pencil, Trash2, Globe, Radio, Send, ImageIcon, Loader2, X, AtSign } from "lucide-react"
+import { Plus, Pencil, Trash2, ImageIcon, Loader2, X, AtSign } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CATEGORIAS_NOTICIA, type DestinoNoticia, type Noticia } from "@/lib/types"
+import { CATEGORIAS_NOTICIA, type Noticia } from "@/lib/types"
 import { criarNoticia, editarNoticia, apagarNoticia } from "@/app/admin/noticias/actions"
 
 function formatarData(iso: string) {
@@ -35,12 +35,6 @@ function formatarData(iso: string) {
   if (!y || !m || !d) return iso
   return `${d}/${m}/${y}`
 }
-
-const DESTINOS: { valor: DestinoNoticia; titulo: string; descricao: string; icon: typeof Globe }[] = [
-  { valor: "portal", titulo: "Portal do site", descricao: "Publica na página de Notícias.", icon: Globe },
-  { valor: "diario_naval", titulo: "Canal Diário Naval", descricao: "Envia ao canal via webhook.", icon: Radio },
-  { valor: "ambos", titulo: "Ambos", descricao: "Portal do site e Diário Naval.", icon: Send },
-]
 
 export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
   const [isPending, startTransition] = useTransition()
@@ -52,7 +46,6 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
   const [confirmarApagar, setConfirmarApagar] = useState<Noticia | null>(null)
 
   const [categoria, setCategoria] = useState<string>("Comunicados")
-  const [destino, setDestino] = useState<DestinoNoticia>("portal")
   const [imagemUrl, setImagemUrl] = useState<string>("")
   const [enviandoImg, setEnviandoImg] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -65,7 +58,6 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
   function abrirNovo() {
     setEditando(null)
     setCategoria("Comunicados")
-    setDestino("portal")
     setImagemUrl("")
     setErro(null)
     setOpenForm(true)
@@ -74,7 +66,6 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
   function abrirEdicao(n: Noticia) {
     setEditando(n)
     setCategoria(n.categoria)
-    setDestino(n.destino)
     setImagemUrl(n.imagem_url ?? "")
     setErro(null)
     setOpenForm(true)
@@ -100,7 +91,6 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
   function submitForm(formData: FormData) {
     setErro(null)
     formData.set("categoria", categoria)
-    formData.set("destino", destino)
     formData.set("imagem_url", imagemUrl)
     startTransition(async () => {
       const res = editando ? await editarNoticia(editando.id, formData) : await criarNoticia(formData)
@@ -143,9 +133,6 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary">{n.categoria}</Badge>
                   <span className="text-xs text-muted-foreground">{formatarData(n.data)}</span>
-                  <Badge variant="outline" className="gap-1">
-                    {n.destino === "diario_naval" ? "Diário Naval" : n.destino === "ambos" ? "Portal + Diário Naval" : "Portal"}
-                  </Badge>
                 </div>
                 <h3 className="font-serif text-lg font-semibold text-foreground text-balance">{n.titulo}</h3>
                 <p className="text-sm text-muted-foreground text-pretty">{n.resumo}</p>
@@ -183,7 +170,7 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
               <DialogDescription>
                 {editando
                   ? "Atualize os dados desta notícia."
-                  : "Preencha os dados e escolha onde a notícia será publicada."}
+                  : "Preencha os dados da notícia que será publicada no portal do site."}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -285,35 +272,6 @@ export function NoticiasManager({ noticias }: { noticias: Noticia[] }) {
                   />
                 </div>
               </div>
-
-              {!editando ? (
-                <div className="space-y-2">
-                  <Label>Onde publicar?</Label>
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    {DESTINOS.map((d) => {
-                      const Icon = d.icon
-                      const ativo = destino === d.valor
-                      return (
-                        <button
-                          type="button"
-                          key={d.valor}
-                          onClick={() => setDestino(d.valor)}
-                          className={`flex flex-col items-start gap-1 rounded-md border p-3 text-left transition-colors ${
-                            ativo ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
-                          }`}
-                          aria-pressed={ativo}
-                        >
-                          <span className="flex items-center gap-2 font-medium text-foreground">
-                            <Icon className={`size-4 ${ativo ? "text-primary" : "text-muted-foreground"}`} />
-                            {d.titulo}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{d.descricao}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ) : null}
 
               {/* Rodapé */}
               <div className="space-y-2">

@@ -1,5 +1,42 @@
 export type ContestStatus = "fechado" | "inscricoes_abertas" | "em_andamento" | "previsto"
 
+export type Curso = {
+  id: string
+  titulo: string
+  descricao: string | null
+  carga_horaria: string | null
+  instrutor: string | null
+  modalidade: string | null
+  local: string | null
+  vagas: number
+  inscricoes_inicio: string | null
+  inscricoes_fim: string | null
+  image_url: string | null
+  publicado: boolean
+  created_at: string
+}
+
+export type CursoComVagas = Curso & { inscritos: number }
+
+export type Instrutor = {
+  id: string
+  nome: string
+  patente: string | null
+  especialidade: string | null
+  created_at: string
+}
+
+export type CursoInscricao = {
+  id: string
+  curso_id: string
+  candidato_conta_id: string
+  id_jogo: string
+  nome: string
+  nome_personagem: string | null
+  observacoes: string | null
+  created_at: string
+}
+
 export type Contest = {
   id: string
   titulo: string
@@ -46,6 +83,9 @@ export type Registration = {
   total_questoes: number | null
   respostas: number[] | null
   prova_finalizada_em: string | null
+  desclassificado: boolean
+  motivo_desclassificacao: string | null
+  desclassificado_em: string | null
   created_at: string
 }
 
@@ -131,6 +171,9 @@ export type AbaWebhook =
   | "candidatos"
   | "assinantes"
   | "ouvidoria"
+  | "cir"
+  | "carteira_nautica"
+  | "funcional_militar"
 
 export type DestinoNoticia = "portal" | "diario_naval" | "ambos"
 
@@ -166,4 +209,16 @@ export const WEBHOOK_ABAS: { valor: AbaWebhook; label: string; descricao: string
   { valor: "candidatos", label: "Candidatos", descricao: "Disparado a cada nova inscrição de candidato." },
   { valor: "assinantes", label: "Assinantes", descricao: "Disparado quando um cidadão se cadastra para receber notícias." },
   { valor: "ouvidoria", label: "Ouvidoria", descricao: "Disparado a cada nova manifestação registrada na Ouvidoria." },
+  { valor: "cir", label: "Aquaviários — CIR", descricao: "Disparado ao emitir uma Caderneta de Inscrição e Registro (CIR)." },
+  { valor: "carteira_nautica", label: "Aquaviários — Carteira Náutica", descricao: "Disparado ao emitir uma Carteira Náutica de Embarcação." },
+  { valor: "funcional_militar", label: "Aquaviários — Identidade Funcional", descricao: "Disparado ao emitir uma Identidade Funcional Militar da Marinha." },
 ]
+
+// Tipos de documento emitidos na área de Aquaviários.
+export type TipoDocAquaviario = "cir" | "carteira_nautica" | "funcional_militar"
+
+export const DOC_AQUAVIARIO_LABEL: Record<TipoDocAquaviario, string> = {
+  cir: "Caderneta de Inscrição e Registro (CIR)",
+  carteira_nautica: "Carteira Náutica de Embarcação",
+  funcional_militar: "Identidade Funcional Militar",
+}

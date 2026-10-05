@@ -48,5 +48,21 @@ export const cargosMarinha: { grupo: string; cargos: string[] }[] = [
 // Cargos com acesso restrito no painel (veem apenas a área de Notícias).
 export const cargosRestritos: string[] = ["Publicitário"]
 
+// Almirantado: Administrador, Estado-Maior da Armada e os Oficiais-Generais.
+// Usado para liberar ações administrativas sensíveis (ex.: gerenciar instrutores).
+export const cargosAlmirantado: string[] = [
+  "Administrador",
+  "Estado-Maior da Armada",
+  "Almirante",
+  "Almirante de Esquadra",
+  "Vice-Almirante",
+  "Contra-Almirante",
+]
+
+export function ehAlmirantado(papel?: string | null): boolean {
+  if (!papel) return false
+  return cargosAlmirantado.includes(papel)
+}
+
 // Lista achatada, útil para validação e selects simples.
 export const todosOsCargos: string[] = cargosMarinha.flatMap((g) => g.cargos)

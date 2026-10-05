@@ -9,6 +9,8 @@ import {
   getInscricoesPorIdJogo,
   getConcursosPublicos,
 } from "@/lib/concursos-publicos"
+import { getCursosParaCandidato } from "@/lib/cursos-candidato"
+import { CursosCandidato } from "@/components/area-candidato/cursos-candidato"
 import { sair } from "./actions"
 import { Gamepad2, LogOut, Calendar, Ticket, FileText, ArrowRight, Sparkles } from "lucide-react"
 
@@ -43,7 +45,7 @@ export default async function AreaCandidatoPage() {
             <CandidatoAuthForm />
           </section>
         ) : (
-          <PainelCandidato idJogo={candidato.id_jogo} nome={candidato.nome} />
+          <PainelCandidato contaId={candidato.id} idJogo={candidato.id_jogo} nome={candidato.nome} />
         )}
       </main>
       <SiteFooter />
@@ -51,10 +53,11 @@ export default async function AreaCandidatoPage() {
   )
 }
 
-async function PainelCandidato({ idJogo, nome }: { idJogo: string; nome: string }) {
-  const [inscricoes, todos] = await Promise.all([
+async function PainelCandidato({ contaId, idJogo, nome }: { contaId: string; idJogo: string; nome: string }) {
+  const [inscricoes, todos, cursos] = await Promise.all([
     getInscricoesPorIdJogo(idJogo),
     getConcursosPublicos(),
+    getCursosParaCandidato(contaId),
   ])
 
   const idsInscritos = new Set(inscricoes.map((i) => i.concurso?.id).filter(Boolean))
@@ -196,6 +199,9 @@ async function PainelCandidato({ idJogo, nome }: { idJogo: string; nome: string 
           </div>
         )}
       </div>
+
+      {/* Cursos da Marinha */}
+      <CursosCandidato cursos={cursos} />
     </section>
   )
 }

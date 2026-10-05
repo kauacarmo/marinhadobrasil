@@ -36,6 +36,20 @@ export async function acessarProva(codigoRaw: string): Promise<AcessoProvaOk | A
   if (!reg) return { ok: false, error: "Código inválido. Verifique o código recebido na inscrição." }
   const registration = reg as Registration
 
+  // Antifraude: candidato já desclassificado por cola não acessa novamente.
+  if (registration.desclassificado) {
+    return {
+      ok: false,
+      error:
+        "Você foi DESCLASSIFICADO por quebra das regras da prova (cola). O acesso a esta prova está permanentemente bloqueado.",
+    }
+  }
+
+  // Antifraude: prova já finalizada não pode ser refeita.
+  if (registration.prova_finalizada_em) {
+    return { ok: false, error: "Esta prova já foi finalizada e não pode ser refeita." }
+  }
+
   const { data: contestData } = await supabase
     .from("contests")
     .select("*")
@@ -76,8 +90,51 @@ export async function acessarProva(codigoRaw: string): Promise<AcessoProvaOk | A
   }
 }
 
+// Antifraude: registra a desclassificação por cola (saída da tela / troca de janela).
+export async function desclassificarProva(codigoRaw: string, motivo: string) {
+  const codigo = (codigoRaw || "").trim().toUpperCase()
+  if (!codigo) return { error: "Código ausente." }
+
+  const supabase = createAdminClient()
+  const { data: reg } = await supabase
+    .from("registrations")
+    .select("id, desclassificado")
+    .eq("codigo_prova", codigo)
+    .single()
+
+  if (!reg) return { error: "Inscrição não encontrada." }
+  // Já desclassificado: mantém o primeiro registro.
+  if ((reg as { desclassificado: boolean }).desclassificado) return { success: true }
+
+  await supabase
+    .from("registrations")
+    .update({
+      desclassificado: true,
+      motivo_desclassificacao: motivo?.slice(0, 200) || "Cola detectada durante a prova.",
+      desclassificado_em: new Date().toISOString(),
+      prova_finalizada_em: new Date().toISOString(),
+      acertos: 0,
+    })
+    .eq("codigo_prova", codigo)
+
+  return { success: true }
+}
+
 export async function enviarRespostas(examId: string, respostas: number[], codigo?: string) {
   const supabase = createAdminClient()
+
+  // Antifraude: não aceita respostas de candidato desclassificado.
+  if (codigo) {
+    const { data: reg } = await supabase
+      .from("registrations")
+      .select("desclassificado")
+      .eq("codigo_prova", codigo.trim().toUpperCase())
+      .single()
+    if (reg && (reg as { desclassificado: boolean }).desclassificado) {
+      return { error: "Você foi desclassificado por cola. As respostas não serão computadas." }
+    }
+  }
+
   const { data: examData } = await supabase.from("exams").select("*").eq("id", examId).single()
   const exam = examData as Exam | null
   if (!exam) return { error: "Prova não encontrada." }

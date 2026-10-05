@@ -6,13 +6,16 @@ import { sair } from "@/app/login/actions"
 import {
   LayoutDashboard,
   FileText,
+  GraduationCap,
   Users,
   UserCog,
   Newspaper,
+  Radio,
   ScrollText,
   BookText,
   Gavel,
   ClipboardList,
+  Anchor,
   Settings,
   LogOut,
 } from "lucide-react"
@@ -23,10 +26,13 @@ import { cargosRestritos } from "@/lib/cargos-marinha"
 const navItems = [
   { href: "/admin", label: "Painel", icon: LayoutDashboard },
   { href: "/admin/concursos", label: "Concursos", icon: FileText },
+  { href: "/admin/cursos", label: "Cursos", icon: GraduationCap },
   { href: "/admin/publicacoes", label: "Resultados e Editais", icon: ClipboardList },
   { href: "/admin/usuarios", label: "Usuários", icon: UserCog },
   { href: "/admin/candidatos", label: "Candidatos", icon: Users },
+  { href: "/admin/aquaviarios", label: "Aquaviários", icon: Anchor },
   { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
+  { href: "/admin/diario-naval", label: "Diário Naval", icon: Radio },
   { href: "/admin/portarias", label: "Portarias", icon: ScrollText },
   { href: "/admin/boletim", label: "Boletim Interno", icon: BookText },
   { href: "/admin/disciplinar", label: "Disciplinar", icon: Gavel },
@@ -34,7 +40,7 @@ const navItems = [
 ]
 
 // Guias visíveis para cargos com acesso restrito (ex.: Publicitário)
-const guiasRestritas = ["/admin", "/admin/noticias"]
+const guiasRestritas = ["/admin", "/admin/noticias", "/admin/diario-naval"]
 
 export function AdminSidebar({ papel = "" }: { papel?: string }) {
   const pathname = usePathname()
@@ -59,7 +65,7 @@ export function AdminSidebar({ papel = "" }: { papel?: string }) {
         </div>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {itens.map((item) => {
           const active =
             item.href === "/admin"

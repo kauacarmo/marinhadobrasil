@@ -46,6 +46,8 @@ export type CandidatoDesempenho = {
   finalizadaEm: string | null
   posicao: number
   aprovado: boolean
+  desclassificado: boolean
+  motivoDesclassificacao: string | null
 }
 
 export type DesempenhoConcurso = {
@@ -96,13 +98,16 @@ export async function getDesempenhoConcurso(contestId: string): Promise<Desempen
 
   const { data: regs } = await supabase
     .from("registrations")
-    .select("id, numero_inscricao, nome, nome_personagem, acertos, total_questoes, prova_finalizada_em")
+    .select(
+      "id, numero_inscricao, nome, nome_personagem, acertos, total_questoes, prova_finalizada_em, desclassificado, motivo_desclassificacao",
+    )
     .eq("contest_id", contestId)
     .not("prova_finalizada_em", "is", null)
 
   const vagas = (contest as any).vagas ?? 0
 
-  // Ordena pela maior nota (aproveitamento), depois pela conclusão mais cedo
+  // Ordena pela maior nota (aproveitamento), depois pela conclusão mais cedo.
+  // Desclassificados por cola vão sempre para o fim da lista.
   const ordenados = (regs ?? [])
     .map((r: any) => {
       const total = r.total_questoes ?? 0
@@ -116,18 +121,21 @@ export async function getDesempenhoConcurso(contestId: string): Promise<Desempen
         total,
         percentual,
         finalizadaEm: r.prova_finalizada_em,
+        desclassificado: !!r.desclassificado,
+        motivoDesclassificacao: r.motivo_desclassificacao ?? null,
       }
     })
     .sort((a, b) => {
+      if (a.desclassificado !== b.desclassificado) return a.desclassificado ? 1 : -1
       if (b.percentual !== a.percentual) return b.percentual - a.percentual
       return (a.finalizadaEm ?? "").localeCompare(b.finalizadaEm ?? "")
     })
 
-  // Sugestão de aprovação: dentro do número de vagas e com aproveitamento mínimo
+  // Sugestão de aprovação: dentro do número de vagas, com aproveitamento mínimo e não desclassificado.
   let aprovados = 0
   const candidatos: CandidatoDesempenho[] = ordenados.map((c, i) => {
     const dentroVagas = vagas > 0 ? i < vagas : true
-    const aprovado = dentroVagas && c.percentual >= APROVEITAMENTO_MINIMO
+    const aprovado = !c.desclassificado && dentroVagas && c.percentual >= APROVEITAMENTO_MINIMO
     if (aprovado) aprovados++
     return { ...c, posicao: i + 1, aprovado }
   })

@@ -3,7 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin"
 import { revalidatePath } from "next/cache"
 import { dispararWebhooks } from "@/lib/webhooks"
-import type { DestinoNoticia, Noticia } from "@/lib/types"
+import type { Noticia } from "@/lib/types"
 
 export async function listNoticias(): Promise<Noticia[]> {
   const supabase = createAdminClient()
@@ -21,35 +21,32 @@ export async function criarNoticia(formData: FormData) {
   const resumo = String(formData.get("resumo") || "").trim()
   const categoria = String(formData.get("categoria") || "Comunicados").trim()
   const data = String(formData.get("data") || "").trim()
-  const destino = String(formData.get("destino") || "portal").trim() as DestinoNoticia
   const imagem_url = String(formData.get("imagem_url") || "").trim() || null
   const rodape = String(formData.get("rodape") || "").trim() || null
   const mencao = String(formData.get("mencao") || "").trim() || null
 
   if (!titulo) return { error: "Informe o título da publicação." }
   if (!resumo) return { error: "Informe o resumo da publicação." }
-  if (!["portal", "diario_naval", "ambos"].includes(destino)) {
-    return { error: "Selecione um destino válido." }
-  }
 
   const dataPublicacao = data || new Date().toISOString().slice(0, 10)
   const supabase = createAdminClient()
 
-  const payloadWebhook = { titulo, resumo, categoria, data: dataPublicacao, imagem_url, rodape, mencao }
+  // A aba Notícias publica exclusivamente no portal do site.
+  // O canal Diário Naval agora possui aba própria (/admin/diario-naval).
+  const { error } = await supabase
+    .from("noticias")
+    .insert({ titulo, resumo, categoria, data: dataPublicacao, destino: "portal", imagem_url, rodape, mencao })
+  if (error) return { error: error.message }
 
-  // Grava no portal apenas quando o destino inclui o site
-  if (destino === "portal" || destino === "ambos") {
-    const { error } = await supabase
-      .from("noticias")
-      .insert({ titulo, resumo, categoria, data: dataPublicacao, destino, imagem_url, rodape, mencao })
-    if (error) return { error: error.message }
-    await dispararWebhooks("noticias", "publicada", payloadWebhook)
-  }
-
-  // Dispara o canal Diário Naval quando incluído no destino
-  if (destino === "diario_naval" || destino === "ambos") {
-    await dispararWebhooks("diario_naval", "publicada", payloadWebhook)
-  }
+  await dispararWebhooks("noticias", "publicada", {
+    titulo,
+    resumo,
+    categoria,
+    data: dataPublicacao,
+    imagem_url,
+    rodape,
+    mencao,
+  })
 
   revalidatePath("/admin/noticias")
   revalidatePath("/noticias")
